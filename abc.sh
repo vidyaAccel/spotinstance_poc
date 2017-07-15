@@ -1,2 +1,2 @@
 #!/bin/sh
-mkdir poc
+mkdir $1

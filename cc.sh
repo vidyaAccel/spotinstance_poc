@@ -1,2 +1,5 @@
 #!/bin/sh
-mkdir "$1"
+if [ ! -z "$1" ]
+ then mkdir "$1"
+fi
+

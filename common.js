@@ -1,4 +1,4 @@
-var _             = require('../../libs/underscore');
+var _  = require('./underscore');
 var each = function(collection, fn, finalCallback)
 {
   var keys = _.isArray(collection) ? _.range(collection.length) : _.keys(collection);
@@ -21,5 +21,6 @@ var each = function(collection, fn, finalCallback)
       return doFinal();
     }
   };
+}
 
 exports.each = each;

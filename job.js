@@ -1,7 +1,6 @@
 var fs     = require('fs');
 var AWS    = require('aws-sdk');
-var _      = require('underscore');
-var common = require('common.js');
+var common = require('./common.js');
 
 var accessKey = process.env.accessKey;
 var secretKey = process.env.secretKey;

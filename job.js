@@ -46,7 +46,7 @@ var s3Upload = function(jobname, callback) {
 
 
 var jobConversion = function(){
-  var jobs = input.split("#");
+  var jobs = (input) ? input.split("#") : [];
 
   common.each(jobs, function(job, job_callback) {
     var jobname = job;

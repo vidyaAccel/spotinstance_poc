@@ -1,13 +1,13 @@
 var fs     = require('fs');
 var AWS    = require('aws-sdk');
-var common = require('./common.js');
+var common = require('./utils/common.js');
 
 var accessKey = process.env.accessKey;
 var secretKey = process.env.secretKey;
 var region = process.env.region;
 var input = process.env.job;
 
-var qURL ="https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc";
+var qURL = "https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc";
 
 AWS.config.update({accessKeyId: accessKey, secretAccessKey: secretKey});
 var sqs = new AWS.SQS({region:region});

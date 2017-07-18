@@ -13,35 +13,35 @@ try {
 	console.log("ERROR:", error, '\n Please run "npm install aws-sdk" to solve this error.');
 }
 
-var jobArray = (process.argv.jobs).split(",");
-var waitTime = parseInt(process.argv.time);
-
+var jobArg = process.argv[2].split("jobs=")[1];
+var Time = process.argv[3].split('time=')[1];
+var jobArray = jobArg.split(',');
+var waitTime = parseInt(Time);
 var inputData = {};
 var instance = {};
 
-console.log(jobArray, time);
+console.log(jobArray, waitTime);
 
 inputData.Platform = 'Linux/UNIX';
 inputData.Increment = 1;
 inputData.Specification = {};
-inputData.Specification.InstanceType = 'm3.medium';
+inputData.Specification.InstanceType = "m3.medium";
 inputData.Specification.Placement = {};
-inputData.Specification.Placement.AvailabilityZone = 'us-west-2a';
+inputData.Specification.Placement.AvailabilityZone = "us-west-2a";
 inputData.repository = 'spotpoc/poc:v29';
 inputData.RequestType = 'one-time';
 inputData.InstanceCount = '1';
-inputData.Specification.ImageId = 'ami-5b4c5d22';
-inputData.Specification.SecurityGroupIds = ['sg-42558938'];
-inputData.Specification.KeyName = 'tsgpoc-key';
+inputData.Specification.ImageId = "ami-5b4c5d22";
+inputData.Specification.SecurityGroupIds = ["sg-42558938"];
+inputData.Specification.KeyName = "tsgpoc-key";
 inputData.Specification.Monitoring = {};
 inputData.Specification.Monitoring.Enabled = true;
-inputData.Specification.UserData = '`cat '+__dirname+'/spotManager/userData.txt | base64 -w 0`';
 
 var getCredential = function(callback) {
-	fs.readFile('~/.aws/credentials', 'utf-8', function (error, data) {
+	fs.readFile(process.env.HOME+'/.aws/credentials', 'utf-8', function (error, data) {
 		if(error || !data) {
-			console.log("Please install and configure awscli... Then start the job.");
-			return callback(true, null, null);
+			console.log("Please install and configure awscli... Then start the job.", error);
+			return callback(error, null, null);
 		}
 		var newData = data.split('\n');
 		var accessKey = newData[1].split('= ')[1];
@@ -66,7 +66,6 @@ var startJobs = function (jobArray) {
 				new checkSpotInstanceStatus(terminate, function (termSig) {
 					if(termSig == 'Terminated') {
 						console.log("Spot Instance Terminated");
-						return;
 					}
 				});
 			}
@@ -80,7 +79,7 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 		callback('Terminated');
 	} else {
 		if(termSig == "Termination signal") {
-			var startTm. = new Date().getTime();
+			var startTm = new Date().getTime();
 			var diff = 0;
 			var subcheck = function () {
 				var endTm = new Date().getTime();
@@ -131,7 +130,7 @@ var sqsMonitor = function(jobArray) {
 		            		if(instanceErr || instanceData.State.Name == 'terminated') {
 								console.log("Spot Instance Terminated. All Jobs Completed.\nCompleted Jobs:", jobFinished.length);
 								jobArray.forEach(function (job) {
-									console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + "thumb.jpg to see converted image.");
+									console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
 								});
 								return;
 							} else {
@@ -140,7 +139,7 @@ var sqsMonitor = function(jobArray) {
 									if(terminated) {
 										console.log("Spot Instance Terminated");
 										jobArray.forEach(function (job) {
-											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + "thumb.jpg to see converted image.");
+											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
 										});
 										return;
 									} else {

@@ -2,7 +2,9 @@ var _  = require('./underscore');
 var exec = require('child_process').exec;
 
 var each = function(collection, fn, finalCallback) {
+	console.log(collection);
   var keys = _.isArray(collection) ? _.range(collection.length) : _.keys(collection);
+  console.log(keys);
   var errs = [];
 
   var i = 0;
@@ -22,6 +24,14 @@ var each = function(collection, fn, finalCallback) {
       return doFinal();
     }
   };
+  
+  var doFinal = function()
+  {
+    var finalIndex = keys[i] || i;
+    finalCallback(errs, finalIndex, i, keys);
+  }
+
+  return doOne();
 }
 
 var downloadFiles = function(downloadURL, filepath, callback) {

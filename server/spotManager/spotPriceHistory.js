@@ -8,10 +8,10 @@ var increase = function (spotPrice, increment) {
 }
 
 var getBidPrice = function (inputData, callback) {
-	console.log("InputData:\n", inputData);
+	console.log("Getting Spot Price History...");
 	var spotCommand, spotPrice, bidPrice;
 	
-	var now = new Date(); 
+	var now = new Date();
 	var endTime = new Date(now).toISOString();
 
 	spotCommand = 'aws ec2 describe-spot-price-history --availability-zone ' + inputData.Specification.Placement.AvailabilityZone + ' --instance-types ' + inputData.Specification.InstanceType + ' --product-descriptions ' + inputData.Platform + ' --max-items 10 --end-time ' + endTime;

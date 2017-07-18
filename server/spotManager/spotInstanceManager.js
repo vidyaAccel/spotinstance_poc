@@ -1,4 +1,5 @@
 var fs 				= require('fs');
+var mkdirp			= require('mkdirp');
 var exec 			= require('child_process').exec;
 var spawn 			= require('child_process').spawn;
 var spotHistory 	= require("./spotPriceHistory.js");
@@ -15,7 +16,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 			console.log("Lowest Bid Price will be:", bidPrice);
 
 			inputData.SpotPrice = bidPrice;
-
+			console.log("Authorizing Key:", __dirname+'/'+inputData.Specification.KeyName+'.pem');
 			exec('chmod 400 '+__dirname+'/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
 				if(err) {
 					callback(err);
@@ -24,12 +25,12 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 				}
 				fs.readFile(__dirname + "/userData.txt", 'utf8', function (readErr, userData) {
 					if(readErr) return callback(readErr, null);
-					console.log("userData:\n", userData);
 					var region = (inputData.Specification.Placement.AvailabilityZone).split("");
 					region.pop();
 					region = region.join("");
-					data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -it "+inputData.repository;
+					data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -i "+inputData.repository;
 					userData += data;
+					console.log("userData:\n", userData);
 					var base64UserData = new Buffer(userData).toString('base64');
 					inputData.Specification.UserData = base64UserData;
 
@@ -47,7 +48,18 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 												callback(null, instanceData);
 												terminate_callback("Terminated");
 											} else if (instanceData.State.Name == 'running') {
-												callback(null, instanceData);
+												var result = {};
+												var date = new Date();
+												var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
+												var resultPath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID + '/result.json';
+												spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
+													mkdirp(resultPath,function(){
+        												fs.writeFile(resultPath, result, function (err) {
+        													if(err) console.log("Couldn't write result file at ", resultPath);
+        												});
+      												});
+												});
+												callback(null, instanceData, resultPath);
 												terminate_callback("Running");
 											}
 										}

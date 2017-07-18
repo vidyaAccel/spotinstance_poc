@@ -3,7 +3,7 @@ var common 		= require('../utils/common.js');
 var spotManager = require('./spotManager/spotInstanceManager.js');
 var spotInstance = require('./spotManager/spotInstance.js');
 
-var AWS, sqs, s3Bucket;
+var AWS, sqs, s3Bucket, resultPath = [];
 
 try {
 	AWS = require('aws-sdk');
@@ -20,7 +20,7 @@ var waitTime = parseInt(Time);
 var inputData = {};
 var instance = {};
 
-console.log(jobArray, waitTime);
+console.log("Jobs:",jobArray, "\nJob Monitor Waiting time:", waitTime/1000, 'seconds');
 
 inputData.Platform = 'Linux/UNIX';
 inputData.Increment = 1;
@@ -28,7 +28,7 @@ inputData.Specification = {};
 inputData.Specification.InstanceType = "m3.medium";
 inputData.Specification.Placement = {};
 inputData.Specification.Placement.AvailabilityZone = "us-west-2a";
-inputData.repository = 'spotpoc/poc:v29';
+inputData.repository = 'spotpoc/poc:v30';
 inputData.RequestType = 'one-time';
 inputData.InstanceCount = '1';
 inputData.Specification.ImageId = "ami-5b4c5d22";
@@ -51,14 +51,28 @@ var getCredential = function(callback) {
 	});
 }
 
+var getResult = function(path, callback) {
+	fs.readFile(path, 'utf-8', function (error, data) {
+		if(error || !data) {
+			console.log("No result found.....:", error);
+			return callback(error);
+		}
+		var result = JSON.parse(data);
+		callback(null, result);
+	});
+}
+
 var startJobs = function (jobArray) {
 	var jobName = jobArray.join("#");
 	getCredential(function (error, accessKey, secretKey) {
 		if(error) return;
-		console.log(jobName, accessKey, secretKey);
-		spotManager.getSpotInstance(jobName, accessKey, secretKey, inputData, function (err, instanceData) {
+		console.log("jobs:", jobName, "\naws accessKey:", accessKey, "\naws secretKey:", secretKey);
+		spotManager.getSpotInstance(jobName, accessKey, secretKey, inputData, function (err, instanceData, resultFilePath) {
 			if(err || !instanceData) console.log({error:err || 'Jobs Not Started'});
-			else instance = instanceData;
+			else {
+				instance = instanceData;
+				resultPath.push(resultFilePath);
+			}
 		}, function (terminate) {
 			if(terminate == "Terminated") {
 				console.log("Spot Instance Terminated");
@@ -132,7 +146,13 @@ var sqsMonitor = function(jobArray) {
 								jobArray.forEach(function (job) {
 									console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
 								});
-								return;
+								resultPath.forEach(function (path) {
+									getResult(path, function (err, result) {
+										if(err) console.log("Error in getting Result:", err);
+										else console.log("Result:", JSON.stringify(result));
+									});
+								});
+								console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("#") + ".txt to download logFile.");
 							} else {
 								console.log("All Jobs Completed. Terminating Spot Instance.\nCompleted Jobs:", jobFinished.length);
 								spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
@@ -141,10 +161,15 @@ var sqsMonitor = function(jobArray) {
 										jobArray.forEach(function (job) {
 											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
 										});
-										return;
+										resultPath.forEach(function (path) {
+											getResult(path, function (err, result) {
+												if(err) console.log("Error in getting Result:", err);
+												else console.log("Result:", JSON.stringify(result));
+											});
+										});
+										console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("#") + ".txt to download logFile.");
 									} else {
 										console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
-										return;
 									}
 								})
 							}
@@ -153,8 +178,9 @@ var sqsMonitor = function(jobArray) {
 	        	});
 	      	}
 	   	});
-	}, waitTime);
+	}, waitTime * 60 * 1000);
 }
-
+console.log("Starting Job...", jobArray);
 var job = new startJobs(jobArray);
+console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray);
 var queue = new sqsMonitor(jobArray);

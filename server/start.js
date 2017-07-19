@@ -6,6 +6,8 @@ var spotInstance = require('./spotManager/spotInstance.js');
 
 var AWS, sqs, s3Bucket, resultPath = [];
 
+global.completed = false;
+
 try {
 	AWS = require('aws-sdk');
 	sqs = new AWS.SQS({region:'us-west-2'});
@@ -18,6 +20,7 @@ try {
 var jobArg = process.argv[2].split("jobs=")[1];
 var Time = process.argv[3].split('time=')[1];
 var jobArray = jobArg.split(',');
+var finishedJobs = [];
 var waitTime = parseInt(Time);
 var inputData = {};
 var instance;
@@ -133,6 +136,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	          		if(jobArray.includes(jobname) && !jobFinished.includes(jobname)) {
 	          			console.log("adding "+jobname+" to finished job");
 	          			jobFinished.push(jobname);
+	          			if(!finishedJobs.includes(jobname)) finishedJobs.push(jobname);
 	          		}
           			if(jobPending.includes(jobname)) {
           				jobPending.forEach(function (job, i) {
@@ -151,7 +155,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	          		job_callback();
 	        	}, function(err) {
 	        		console.log(err);
-	        		console.log("Total Jobs:", jobArray);
+	        		console.log("Total Jobs:", finishedJobs);
 	        		console.log("Pending jobs:", jobPending);
 	        		console.log("Finished jobs", jobFinished);
 	        		if(jobPending.length > 0) {
@@ -159,51 +163,55 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 							if(instanceErr || instanceData.State.Name == 'terminated') {
 								console.log("Spot Instance Terminated. Jobs Finished:", jobFinished.length, "\nPending Jobs:", jobPending.length, "\nStarted Pending Jobs.");
 								startJobs(jobPending, function () { console.log("Spot Instance Terminated"); });
-								sqsMonitor(jobPending, waitTime, callback);
+								sqsMonitor(jobPending, 0.5, callback);
 							} else {
 								instance = instanceData;
 								console.log("Waiting for Jobs to Complete.", jobPending);
-								sqsMonitor(jobPending, waitTime, callback);
+								sqsMonitor(jobPending, 0.5, callback);
 							}
 						});
 		            } else if(jobFinished.length == jobArray.length) {
-		            	deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
-			            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
-			            		if(instanceErr || instanceData.State.Name == 'terminated') {
-									console.log("Spot Instance Terminated. All Jobs Completed.\nCompleted Jobs:", jobFinished.length);
-									jobArray.forEach(function (job) {
-										console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
-									});
-									resultPath.forEach(function (path) {
-										getResult(path, function (err, result) {
-											if(err) console.log("Error in getting Result:", err);
-											else console.log("Result:", JSON.stringify(result));
+		            	if(completed) {
+			            	deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
+				            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
+				            		if(instanceErr || instanceData.State.Name == 'terminated') {
+										console.log("Spot Instance Terminated. All Jobs Completed.\nCompleted Jobs:", jobFinished.length);
+										finishedJobs.forEach(function (job) {
+											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
 										});
-									});
-									console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("%23") + ".txt to download logFile.");
-								} else {
-									console.log("All Jobs Completed. Terminating Spot Instance.\nCompleted Jobs:", jobFinished.length);
-									spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
-										if(terminated) {
-											console.log("Spot Instance Terminated");
-											jobArray.forEach(function (job) {
-												console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
+										resultPath.forEach(function (path) {
+											getResult(path, function (err, result) {
+												if(err) console.log("Error in getting Result:", err);
+												else console.log("Result:", JSON.stringify(result));
 											});
-											resultPath.forEach(function (path) {
-												getResult(path, function (err, result) {
-													if(err) console.log("Error in getting Result:", err);
-													else console.log("Result:", JSON.stringify(result));
+										});
+										console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
+									} else {
+										console.log("All Jobs Completed. Terminating Spot Instance.\nCompleted Jobs:", jobFinished.length);
+										spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
+											if(terminated) {
+												console.log("Spot Instance Terminated");
+												finishedJobs.forEach(function (job) {
+													console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".jpg to download converted image.");
 												});
-											});
-											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("%23") + ".txt to download logFile.");
-										} else console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
-									});
-								}
-			            	});
-						});
+												resultPath.forEach(function (path) {
+													getResult(path, function (err, result) {
+														if(err) console.log("Error in getting Result:", err);
+														else console.log("Result:", JSON.stringify(result));
+													});
+												});
+												console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
+											} else console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
+										});
+									}
+				            	});
+							});
+						} else {
+							sqsMonitor(finishedJobs, 0.5, callback);
+						}
 		            }
 	        	});
-	      	} else sqsMonitor(jobArray, waitTime, callback);
+	      	} else sqsMonitor(jobArray, 0.5, callback);
 	   	});
 	}, waitTime * 60 * 1000);
 }

@@ -58,6 +58,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result) {
 										fs.writeFile(resultFile, result, function (err) {
 											if(err) console.log("Couldn't write result file at ", resultFile);
+											completed = true;
 										});
 									});
 								});

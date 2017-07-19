@@ -10,7 +10,7 @@ var input = process.env.job;
 
 var qURL = "https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc";
 
-var logFile = process.env.HOME + '/Joblogs/' + input + ".txt";
+var logFile = __dirname + '/Joblogs/' + input + ".txt";
 
 AWS.config.update({accessKeyId: accessKey, secretAccessKey: secretKey, region:region});
 var sqs = new AWS.SQS({region:region});
@@ -26,10 +26,10 @@ var sqsUpload = function(jobname, callback) {
 
   sqs.sendMessage(sqsParams, function(err, data) {
 		if (err) {
-			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] SQS sending error: "+err, 'utf8');
+			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] SQS sending error: "+JSON.stringify(err), 'utf8');
 		  return callback(err);
 		}
-		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] SQS sent data: "+data, 'utf8');
+		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] SQS sent data: "+JSON.stringify(data), 'utf8');
 		callback(null, {'result': true});
   });
 }
@@ -38,10 +38,10 @@ var s3Upload = function(jobname, callback) {
   var data = {Key: jobname+".jpg", Body: fs.createReadStream(__dirname + '/images/output/' + jobname + 'thumb.jpg')};
   s3Bucket.putObject(data, function(err, data) {
 		if(err) {
-			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploading error: "+err, 'utf8');
+			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploading error: "+JSON.stringify(err), 'utf8');
 		  return callback(err);
 		}
-		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploaded data: "+data, 'utf8');
+		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploaded data: "+JSON.stringify(data), 'utf8');
 		callback(null, {'result': true});
   });
 }
@@ -50,10 +50,10 @@ var logUpload = function(file, callback) {
   var data = {Key: file.split("/")[file.split("/").length-1], Body: fs.createReadStream(file)};
   s3Bucket.putObject(data, function(err, data) {
 		if(err) {
-			console.log("["+new Date(Date.now())+"] Log File uploading error: "+err, 'utf8');
+			console.log("["+new Date(Date.now())+"] Log File uploading error: "+JSON.stringify(err));
 		  return callback(err);
 		}
-		console.log("["+new Date(Date.now())+"] Log File uploaded data: "+data, 'utf8');
+		console.log("["+new Date(Date.now())+"] Log File uploaded data: "+JSON.stringify(data));
 		callback(null, {'result': true});
   });
 }
@@ -92,12 +92,14 @@ var jobConversion = function () {
 					}
 			  });
 			});
+			job_callback();
 		}, 3*60*1000);
-		job_callback();
   }, function(err) {
   	fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
   	logUpload(logFile, function (err, res) {
-  		return;
+  		exec('rm -rf ' + logFile, function () {
+  			return;
+  		});
   	})
   });
 }
@@ -106,5 +108,5 @@ exec('npm install mkdirp', function () {
 	var mkdirp = require('mkdirp');
 	mkdirp(process.env.HOME + '/Joblogs/', function () {
 		jobConversion();
-	}
-}
+	});
+});

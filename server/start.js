@@ -160,7 +160,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	          		job_callback();
 	        	}, function(err) {
 	        		console.log(err);
-	        		console.log("Total Jobs:", finishedJobs);
+	        		console.log("Total Jobs:", jobArray);
 	        		console.log("Pending jobs:", jobPending);
 	        		console.log("Finished jobs", jobFinished);
 	        		if(jobPending.length > 0) {

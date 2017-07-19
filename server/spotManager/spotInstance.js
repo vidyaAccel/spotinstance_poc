@@ -81,7 +81,6 @@ var getInstanceData = function (instanceId, callback) {
 
 
 var connectInstance = function (instanceData, keyName, result, callback) {
-	console.log("Running Jobs in instance.\nPlease wait for Jobs to complete......");
 	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
 		console.log("Instance Terminated");
 		result.success.push("Did not run");
@@ -101,7 +100,6 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			sshCommand = 'ssh';
 			sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
 
-			console.log(sshCommand + " " + sshCommandArgs.join(" "));
 			connect = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
 				stdio: [
 			    	0, // Doesn't use parent's stdin for child

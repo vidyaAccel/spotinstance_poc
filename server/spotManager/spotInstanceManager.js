@@ -7,70 +7,62 @@ var spotInstance 	= require("./spotInstance.js");
 
 var terminate = false;
 
-var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callback, terminate_callback) {
-	
+var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callback) {
+	var result = {};
+	var date = new Date();
+	var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
+	var resultPath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID + '/result.json';
 	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
-		if(error || !bidPrice) console.log("Error in getting Bid Price:", error);
-		else {
-			console.log("Latest Spot Price is:", spotPrice);
-			console.log("Lowest Bid Price will be:", bidPrice);
+		if(error || !bidPrice) {
+			console.log("Error in getting Bid Price:", error);
+			return callback(error, null, resultPath, "Not Started");
+		}
+		console.log("Latest Spot Price is:", spotPrice);
+		console.log("Lowest Bid Price will be:", bidPrice);
 
-			inputData.SpotPrice = bidPrice;
-			console.log("Authorizing Key:", __dirname+'/'+inputData.Specification.KeyName+'.pem');
-			exec('chmod 400 '+__dirname+'/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
-				if(err) {
-					callback(err);
-					terminate_callback("Terminated");
-					return;
-				}
-				fs.readFile(__dirname + "/userData.txt", 'utf8', function (readErr, userData) {
-					if(readErr) return callback(readErr, null);
-					var region = (inputData.Specification.Placement.AvailabilityZone).split("");
-					region.pop();
-					region = region.join("");
-					data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -i "+inputData.repository;
-					userData += data;
-					console.log("userData:\n", userData);
-					var base64UserData = new Buffer(userData).toString('base64');
-					inputData.Specification.UserData = base64UserData;
+		inputData.SpotPrice = bidPrice;
+		console.log("Authorizing Key:", __dirname+'/'+inputData.Specification.KeyName+'.pem');
+		exec('chmod 400 '+__dirname+'/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
+			if(err) {
+				return callback(err, null, resultPath, "Not Started");
+			}
+			fs.readFile(__dirname + "/userData.txt", 'utf8', function (readErr, userData) {
+				if(readErr) return callback(readErr, null, resultPath, "Not Started");
+				var region = (inputData.Specification.Placement.AvailabilityZone).split("");
+				region.pop();
+				region = region.join("");
+				data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -i "+inputData.repository;
+				userData += data;
+				console.log("userData:\n", userData);
+				var base64UserData = new Buffer(userData).toString('base64');
+				inputData.Specification.UserData = base64UserData;
 
-					spotInstance.requestSpotInstance(inputData, function (reqErr, requestId, requestState) {
-						if(reqErr) callback(reqErr, null);
-						else {
-							spotInstance.getInstanceId(requestId, requestState, function (idErr, instanceId) {
-								if(idErr) callback(idErr, null);
-								else {
-									spotInstance.getInstanceData(instanceId, function (instanceErr, instanceData) {
-										if(instanceErr) callback(instanceErr, null);
-										else {
-											if (instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
-												console.log("Instance Terminated");
-												callback(null, instanceData);
-												terminate_callback("Terminated");
-											} else if (instanceData.State.Name == 'running') {
-												var result = {};
-												var date = new Date();
-												var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
-												var resultPath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID + '/result.json';
-												spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
-													mkdirp(resultPath,function(){
-        												fs.writeFile(resultPath, result, function (err) {
-        													if(err) console.log("Couldn't write result file at ", resultPath);
-        												});
-      												});
-												});
-												callback(null, instanceData, resultPath);
-												terminate_callback("Running");
-											}
-										}
+				spotInstance.requestSpotInstance(inputData, function (reqErr, requestId, requestState) {
+					if(reqErr) return callback(reqErr, null, resultPath, "Not Started");
+					
+					spotInstance.getInstanceId(requestId, requestState, function (idErr, instanceId) {
+						if(idErr) return callback(idErr, null, resultPath, "Running");
+						
+						spotInstance.getInstanceData(instanceId, function (instanceErr, instanceData) {
+							if(instanceErr) return callback(instanceErr, null, resultPath, "Running");
+							if (instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
+								console.log("Instance Terminated");
+								callback(null, instanceData, resultPath, "Terminated");
+							} else if (instanceData.State.Name == 'running') {
+								callback(null, instanceData, resultPath, "Running");
+								spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
+									mkdirp(resultPath,function(){
+										fs.writeFile(resultPath, result, function (err) {
+											if(err) console.log("Couldn't write result file at ", resultPath);
+										});
 									});
-								}
-							});
-						}
+								});
+							}
+						});
 					});
 				});
 			});
-		}
+		});
 	});
 }
 

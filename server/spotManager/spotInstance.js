@@ -117,6 +117,7 @@ var connectInstance = function (instanceData, keyName, result, resultPath, callb
 }
 
 var terminateInstance = function (instanceId, callback) {
+	console.log("Terminating instance....");
 	var command = 'aws ec2 terminate-instances --instance-ids ' + instanceId;
 	console.log(command);
 
@@ -128,6 +129,7 @@ var terminateInstance = function (instanceId, callback) {
 }
 
 var cancelRequest = function (spotRequestId, callback) {
+	console.log("Cancelling spot instance request....");
 	var command = 'aws cancel-spot-instance-requests --spot-instance-request-ids ' + spotRequestId;
 	console.log(command);
 	

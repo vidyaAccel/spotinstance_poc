@@ -101,12 +101,14 @@ var jobConversion = function () {
 			job_callback();
 		}, 3*60*1000);
   }, function(err) {
-  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
-  	logUpload(logFile, function (err, res) {
-  		exec('rm -rf ' + logFile, function () {
-  			return;
-  		});
-  	})
+  	setTimeout(function () {
+	  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
+	  	logUpload(logFile, function (err, res) {
+	  		exec('rm -rf ' + logFile, function () {
+	  			return;
+	  		});
+	  	});
+  	}, 30*1000);
   });
 }
 

@@ -1,6 +1,7 @@
-var fs 			= require('fs');
-var common 		= require('../utils/common.js');
-var spotManager = require('./spotManager/spotInstanceManager.js');
+var fs 			 = require('fs');
+var exec 		 = require('child_process').exec;
+var common 		 = require('../utils/common.js');
+var spotManager  = require('./spotManager/spotInstanceManager.js');
 var spotInstance = require('./spotManager/spotInstance.js');
 
 var AWS, sqs, s3Bucket, resultPath = [];
@@ -11,6 +12,7 @@ try {
 	s3Bucket = new AWS.S3( { params: {Bucket: 'tsgpoc'} } );
 } catch (error) {
 	console.log("ERROR:", error, '\n Please run "npm install aws-sdk" to solve this error.');
+	exec('npm install aws-sdk', function () {});
 }
 
 var jobArg = process.argv[2].split("jobs=")[1];

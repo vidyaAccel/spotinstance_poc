@@ -102,5 +102,9 @@ var jobConversion = function () {
   });
 }
 
-
-jobConversion();
+exec('npm install mkdirp', function () {
+	var mkdirp = require('mkdirp');
+	mkdirp(process.env.HOME + '/Joblogs/', function () {
+		jobConversion();
+	}
+}

@@ -16,3 +16,4 @@ sudo apt-get -y update
 sudo apt-get install -y docker-ce
 sudo service docker start
 sudo docker login -u spotpoc -p spotinstance123
+sudo docker pull spotpoc/poc:v30

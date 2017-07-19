@@ -70,11 +70,11 @@ var getInstanceData = function (instanceId, callback) {
 
 	if(getInstanceData.output[2] || getInstanceData.error) {
 		console.log("Error:", (getInstanceData.output[2] || getInstanceData.error));
-		return callback(getInstanceData.output[2] || getInstanceData.error, null);
+		callback(getInstanceData.output[2] || getInstanceData.error, null);
 	} else if(getInstanceData.status == 0 && getInstanceData.signal == null && getInstanceData.output[1]) {
 		instanceData = JSON.parse(getInstanceData.output[1])['Reservations'][0]['Instances'][0];
 		console.log("Spot Instance Data:\n", instanceData);
-		return callback(null, instanceData); 
+		callback(null, instanceData);
 	}
 }
 
@@ -102,11 +102,11 @@ var connectInstance = function (instanceData, keyName, result, resultPath, callb
 		if(connectInstance.output[2] || connectInstance.error) {
 			console.log("Error:", (connectInstance.output[2] || connectInstance.error));
 			result.error.push("Instance output: Error:", (connectInstance.output[2] || connectInstance.error));
-			return callback(result);
 		} else if(connectInstance.status == 0 && connectInstance.signal == null && connectInstance.output[1]) {
 			connectData = JSON.parse(connectInstance.output[1]);
 			result.success.push("Instance output: Progress:", connectData);
 			console.log("Instance output: Progress:", connectData);
+			callback(result);
 		}
 	} else if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
 		console.log("Instance Terminated");

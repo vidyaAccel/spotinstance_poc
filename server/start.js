@@ -75,7 +75,7 @@ var startJobs = function (jobArray) {
 			else {
 				instance = instanceData;
 				resultPath.push(resultFilePath);
-				console.log("start.js final output:----------------------->", instance, "\n", resultPath);
+				console.log("start.js final output:----------------------->", instance, "\n", resultPath, "\n", terminate);
 			}
 			if(terminate == "Terminated") {
 				console.log("Spot Instance Terminated");
@@ -143,10 +143,10 @@ var sqsMonitor = function(jobArray) {
 		            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 							if(instanceErr || instanceData.State.Name == 'terminated') {
 								console.log("Spot Instance Terminated. Jobs Finished:", jobFinished.length, "\nPending Jobs:", jobPending.length, "\nStarted Pending Jobs.");
-								var newjob = new startJobs(jobPending);
+								startJobs(jobPending);
 							} else {
 								console.log("Waiting for Jobs to Complete.", jobPending);
-								var newqueue = new sqsMonitor(jobArray);
+								sqsMonitor(jobArray);
 							}
 						});
 		            } else if(jobFinished.length == jobArray.length) {
@@ -214,6 +214,6 @@ var deleteMessage = function (qURL, Qmessages, callback) {
 }
 
 console.log("Starting Job...", jobArray);
-var job = new startJobs(jobArray);
+startJobs(jobArray);
 console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray);
-var queue = new sqsMonitor(jobArray);
+sqsMonitor(jobArray);

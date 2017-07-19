@@ -49,6 +49,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 								console.log("Instance Terminated");
 								callback(null, instanceData, resultPath, "Terminated");
 							} else if (instanceData.State.Name == 'running') {
+								console.log('Sending back instance data and result file path......');
 								callback(null, instanceData, resultPath, "Running");
 								spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
 									mkdirp(resultPath,function(){

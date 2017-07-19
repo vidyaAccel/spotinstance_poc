@@ -35,8 +35,13 @@ var sqsUpload = function(jobname, callback) {
 }
 
 var s3Upload = function(jobname, callback) {
-  var data = {Key: jobname+".jpg", Body: fs.createReadStream(__dirname + '/images/output/' + jobname + 'thumb.jpg')};
-  s3Bucket.putObject(data, function(err, data) {
+  var data = { Key: jobname+".jpg",
+  	Body: fs.createReadStream(__dirname + '/images/output/' + jobname + 'thumb.jpg'),
+  	GrantRead: "uri=http://acs.amazonaws.com/groups/global/AllUsers",
+  	AccessControlPolicy: {},
+  	ACL: 'public-read'
+  };
+  s3Bucket.putObjectAcl(data, function(err, data) {
 		if(err) {
 			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploading error: "+JSON.stringify(err), 'utf8');
 		  return callback(err);
@@ -47,8 +52,13 @@ var s3Upload = function(jobname, callback) {
 }
 
 var logUpload = function(file, callback) {
-  var data = {Key: file.split("/")[file.split("/").length-1], Body: fs.createReadStream(file)};
-  s3Bucket.putObject(data, function(err, data) {
+  var data = { Key: file.split("/")[file.split("/").length-1],
+  	Body: fs.createReadStream(file),
+  	GrantRead: "uri=http://acs.amazonaws.com/groups/global/AllUsers",
+  	AccessControlPolicy: {},
+  	ACL: 'public-read'
+  };
+  s3Bucket.putObjectAcl(data, function(err, data) {
 		if(err) {
 			console.log("["+new Date(Date.now())+"] Log File uploading error: "+JSON.stringify(err));
 		  return callback(err);

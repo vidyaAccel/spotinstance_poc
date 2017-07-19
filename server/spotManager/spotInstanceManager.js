@@ -55,7 +55,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 								mkdirp(resultFilePath,function(){
 									result['success'] = [];
 									result['error'] = [];
-									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result. instanceData) {
+									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result, instanceData) {
 										fs.writeFile(resultFile, result, function (err) {
 											if(err) console.log("Couldn't write result file at ", resultFile);
 											completed[instanceData.InstanceId] = true;

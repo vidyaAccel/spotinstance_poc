@@ -55,7 +55,8 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 								mkdirp(resultFilePath,function(){
 									result['success'] = [];
 									result['error'] = [];
-									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result) {
+									var wait = ((jobName.split("#").length) * 3 * 6000) + 1000 + 480000;
+									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, wait, function (result) {
 										fs.writeFile(resultFile, result, function (err) {
 											if(err) console.log("Couldn't write result file at ", resultFile);
 										});
@@ -133,6 +134,7 @@ var terminateAndCancel = function (instanceId, spotRquestType, callback) {
 			}
 		});
 	}
+	instance_terminate();
 }
 
 exports.getSpotInstance = getSpotInstance;

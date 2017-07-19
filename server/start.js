@@ -77,6 +77,7 @@ var startJobs = function (jobArray, callback) {
 				resultPath.push(resultFilePath);
 				console.log("start.js final output:----------------------->", instance, "\n", resultPath, "\n", terminate);
 			}
+			console.log("Spot Instance Running.......");
 			checkSpotInstanceStatus(terminate, function (termSig) {
 				if(termSig == 'Terminated') callback(termSig);
 			});
@@ -102,7 +103,6 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 			}
 		} else {
 			if(termSig == "Terminating by User") console.log("Terminating Spot Instance");
-			console.log("Spot Instance Running.......");
 			spotManager.checkTermination(instance, function (terminate) {
 				setTimeout(function () { checkSpotInstanceStatus(terminate, callback); }, 5000);
 			});
@@ -127,24 +127,25 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	          		var jobname = JSON.parse(message.Body).jobname;
 	          		var id = message.MessageId;
 	          		var handler = message.ReceiptHandle
+	          		console.log('Recieved messages:', Qmessages);
 	          		var Qmessage = JSON.stringify({"Id": id, "ReceiptHandle": handler});
 	          		if(!Qmessages.includes(Qmessage)) Qmessages.push(Qmessage);
 	          		if(jobArray.includes(jobname) && !jobFinished.includes(jobname)) {
 	          			console.log("adding "+jobname+" to finished job");
 	          			jobFinished.push(jobname);
-	          			if(jobPending.includes(jobname)) {
-	          				jobPending.forEach(function (job, i) {
-	          					if(job == jobPending[i]) {
-	          						console.log("removed "+jobname+" from pending job");
-	          						jobPending.splice(i,1);
-	          					}
-	          				});
-	          			}
 	          		}
+          			if(jobPending.includes(jobname)) {
+          				jobPending.forEach(function (job, i) {
+          					if(jobname == jobPending[i]) {
+          						console.log("removed "+jobname+" from pending job");
+          						jobPending.splice(i,1);
+          					}
+          				});
+          			}
 	          		jobArray.forEach(function (job) {
-	          			if(job != jobname && !jobFinished.includes(jobname)) {
-	          				console.log("adding "+jobname+" to pending jobs");
-	          				jobPending.push(jobname);
+	          			if(!jobFinished.includes(job) && !jobPending.includes(job)) {
+	          				console.log("adding "+job+" to pending jobs");
+	          				jobPending.push(job);
 	          			}
 	          		});
 	          		job_callback();
@@ -166,7 +167,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 							}
 						});
 		            } else if(jobFinished.length == jobArray.length) {
-		            	deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function () {
+		            	deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
 			            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 			            		if(instanceErr || instanceData.State.Name == 'terminated') {
 									console.log("Spot Instance Terminated. All Jobs Completed.\nCompleted Jobs:", jobFinished.length);
@@ -220,9 +221,9 @@ var deleteMessage = function (qURL, Qmessages, callback) {
 		sqs.deleteMessageBatch(params, function(err, data) {
 		  	if(err) {
 		  		console.log("SQS delete Error:", err, err.stack, "\nPlease Delete messages mannually in AWS console.");
-		  		return callback();
 		  	}
 		  	console.log("SQS messages deleted:", data);
+		  	callback();
 		});
 	}, 2000);
 }

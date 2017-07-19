@@ -80,8 +80,10 @@ var getInstanceData = function (instanceId, callback) {
 }
 
 
-var connectInstance = function (instanceData, keyName, result, callback) {
+var connectInstance = function (instanceData, keyName, result, wait, callback) {
 	console.log("Running Jobs in instance.....")
+	var time = new Date().getTime();
+	console.log("Please wait for " + (wait-(time/1000))/60 + "minutes to complete.")
 	setTimeout(function () {
 		var sshCommand, sshCommandArgs, connect, connectData;
 		var output = 'tail /var/log/cloud-init-output.log';
@@ -116,7 +118,7 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			result.error.push("Instance Terminated");
 			callback(result);
 		}
-	}, 40000);
+	}, 20000);
 }
 
 var terminateInstance = function (instanceId, callback) {

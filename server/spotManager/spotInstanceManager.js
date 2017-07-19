@@ -31,7 +31,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 				var region = (inputData.Specification.Placement.AvailabilityZone).split("");
 				region.pop();
 				region = region.join("");
-				data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -i "+inputData.repository;
+				data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -p 4000:80 -i "+inputData.repository;
 				userData += data;
 				console.log("userData:\n", userData);
 				var base64UserData = new Buffer(userData).toString('base64');
@@ -51,7 +51,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 							} else if (instanceData.State.Name == 'running') {
 								console.log('Sending back instance data and result file path......');
 								callback(null, instanceData, resultPath, "Running");
-								spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
+								spotInstance.getInstanceOutput(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
 									mkdirp(resultPath,function(){
 										fs.writeFile(resultPath, result, function (err) {
 											if(err) console.log("Couldn't write result file at ", resultPath);

@@ -116,6 +116,42 @@ var connectInstance = function (instanceData, keyName, result, resultPath, callb
 	}
 }
 
+var getInstanceOutput = function (instanceData, keyName, result, resultPath, callback) {
+	var sshCommand, sshCommandArgs, connectInstance, connectData;
+	result['success'] = [];
+	result['error'] = [];
+	
+	if(instanceData.State.Name == 'running') {
+		sshCommand = 'ssh';
+		sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, '-p 4000'];
+
+		console.log(sshCommand, sshCommandArgs);
+		connectInstance = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
+			stdio: [
+		    	0, // Doesn't use parent's stdin for child
+		    	'pipe', // Direct child's stdout to an array output at index 1
+		    	'pipe' // Direct child's stderr to an array output at index 2
+		  	],
+		  	encoding: 'UTF-8'
+		});
+
+		if(connectInstance.output[2] || connectInstance.error) {
+			console.log("Error:", (connectInstance.output[2] || connectInstance.error));
+			result.error.push("Instance output: Error:", (connectInstance.output[2] || connectInstance.error));
+		} else if(connectInstance.status == 0 && connectInstance.signal == null && connectInstance.output[1]) {
+			connectData = JSON.parse(connectInstance.output[1]);
+			result.success.push("Instance output: Progress:", connectData);
+			console.log("Instance output: Progress:", connectData);
+			callback(result);
+		}
+	} else if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
+		console.log("Instance Terminated");
+		result.success.push("Did not run");
+		result.error.push("Instance Terminated");
+		callback(result);
+	}
+}
+
 var terminateInstance = function (instanceId, callback) {
 	console.log("Terminating instance....");
 	var command = 'aws ec2 terminate-instances --instance-ids ' + instanceId;
@@ -145,5 +181,6 @@ exports.requestSpotInstance = requestSpotInstance;
 exports.getInstanceId = getInstanceId;
 exports.getInstanceData = getInstanceData;
 exports.connectInstance = connectInstance;
+exports.getInstanceOutput = getInstanceOutput;
 exports.terminateInstance = terminateInstance;
 exports.cancelRequest = cancelRequest;

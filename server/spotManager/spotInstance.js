@@ -80,10 +80,8 @@ var getInstanceData = function (instanceId, callback) {
 }
 
 
-var connectInstance = function (instanceData, keyName, result, wait, start, callback) {
-	console.log("Running Jobs in instance.....")
-	var end = new Date().getTime();
-	console.log("Please wait for " + (wait-(end-start))/60000 + " minutes to complete.")
+var connectInstance = function (instanceData, keyName, result, callback) {
+	console.log("Running Jobs in instance.\nPlease wait for Jobs to complete......");
 	setTimeout(function () {
 		var sshCommand, sshCommandArgs, connect, connectData;
 		var output = 'tail /var/log/cloud-init-output.log';

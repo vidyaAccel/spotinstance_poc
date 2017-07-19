@@ -55,9 +55,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 								mkdirp(resultFilePath,function(){
 									result['success'] = [];
 									result['error'] = [];
-									var wait = ((jobName.split("#").length) * 3 * 6000) + 1000 + 480000;
-									var startTm = new Date().getTime();
-									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, wait, startTm, function (result) {
+									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result) {
 										fs.writeFile(resultFile, result, function (err) {
 											if(err) console.log("Couldn't write result file at ", resultFile);
 										});

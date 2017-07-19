@@ -110,7 +110,7 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 				} else setTimeout(function () { subcheck(); }, 1000);
 			}
 		} else {
-			if(termSig == "Terminating by User") console.log("Terminating Spot Instance");
+			if(termSig == "Terminating by User" && instance_terminated[instance.InstanceId] == false) console.log("Terminating Spot Instance");
 			spotManager.checkTermination(instance, function (terminate) {
 				setTimeout(function () { checkSpotInstanceStatus(terminate, callback); }, 5000);
 			});
@@ -190,10 +190,11 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 										resultPath.forEach(function (path) {
 											getResult(path, function (err, result) {
 												if(err) console.log("Error in getting Result:", err);
-												else console.log("Result:", JSON.stringify(result));
+												else console.log("Result: goto " + path + " to see the result.");
 											});
 										});
 										console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
+										callback("finished");
 									} else {
 										console.log("All Jobs Completed. Terminating Spot Instance.\nCompleted Jobs:", jobFinished.length);
 										spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
@@ -205,11 +206,15 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 												resultPath.forEach(function (path) {
 													getResult(path, function (err, result) {
 														if(err) console.log("Error in getting Result:", err);
-														else console.log("Result:", JSON.stringify(result));
+														else console.log("Result: goto " + path + " to see the result.");
 													});
 												});
 												console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
-											} else console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
+												callback("finished");
+											} else {
+												console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
+												callback("Not Finished");
+											}
 										});
 									}
 				            	});

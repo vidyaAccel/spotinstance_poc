@@ -6,7 +6,8 @@ var spotInstance = require('./spotManager/spotInstance.js');
 
 var AWS, sqs, s3Bucket, resultPath = [];
 
-global.completed = false;
+global.completed = {};
+global.instance_terminated = {};
 
 try {
 	AWS = require('aws-sdk');
@@ -76,13 +77,17 @@ var startJobs = function (jobArray, callback) {
 		spotManager.getSpotInstance(jobName, accessKey, secretKey, inputData, function (err, instanceData, resultFilePath, terminate) {
 			if(err || !instanceData) console.log({error:err || 'Jobs Not Started'});
 			else {
+				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				resultPath.push(resultFilePath);
 				console.log("start.js final output:----------------------->", instance, "\n", resultPath, "\n", terminate);
 			}
 			console.log("Spot Instance Running.......");
 			checkSpotInstanceStatus(terminate, function (termSig) {
-				if(termSig == 'Terminated') callback(termSig);
+				if(termSig == 'Terminated') {
+					instance_terminated[instance.InstanceId] = true;
+					callback(termSig);
+				}
 			});
 		});
 	});
@@ -161,17 +166,20 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	        		if(jobPending.length > 0) {
 		            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 							if(instanceErr || instanceData.State.Name == 'terminated') {
+								instance_terminated[instanceData.InstanceId] = true;
 								console.log("Spot Instance Terminated. Jobs Finished:", jobFinished.length, "\nPending Jobs:", jobPending.length, "\nStarted Pending Jobs.");
 								startJobs(jobPending, function () { console.log("Spot Instance Terminated"); });
 								sqsMonitor(jobPending, 0.5, callback);
 							} else {
+								instance_terminated[instanceData.InstanceId] = false;
 								instance = instanceData;
 								console.log("Waiting for Jobs to Complete.", jobPending);
 								sqsMonitor(jobPending, 0.5, callback);
 							}
 						});
 		            } else if(jobFinished.length == jobArray.length) {
-		            	if(completed) {
+		            	console.log("completed All Jobs:", completed[instance.InstanceId]);
+		            	if(completed[instance.InstanceId]) {
 			            	deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
 				            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 				            		if(instanceErr || instanceData.State.Name == 'terminated') {

@@ -82,44 +82,47 @@ var getInstanceData = function (instanceId, callback) {
 
 var connectInstance = function (instanceData, keyName, result, callback) {
 	console.log("Running Jobs in instance.\nPlease wait for Jobs to complete......");
-	getInstanceData(instanceData.InstanceId, function (err, data) {
-		if(data.State.Name == 'shutting-down' || data.State.Name == 'terminated') {
-			console.log("Instance Terminated");
-			result.success.push("Did not run");
-			result.error.push("Instance Terminated");
-			return callback(result);
-		}
-		setTimeout(function () {
-			var sshCommand, sshCommandArgs, connect, connectData;
-			var output = 'tail /var/log/cloud-init-output.log';
+	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
+		console.log("Instance Terminated");
+		result.success.push("Did not run");
+		result.error.push("Instance Terminated");
+		return callback(result, instanceData);
+	} else if(instance_terminated[instanceData.InstanceId]) {
+		console.log("Instance Terminated");
+		result.success.push("Did not run");
+		result.error.push("Instance Terminated");
+		return callback(result, instanceData);
+	}
+	setTimeout(function () {
+		var sshCommand, sshCommandArgs, connect, connectData;
+		var output = 'tail /var/log/cloud-init-output.log';
 
-			if(data.State.Name == 'running') {
-				sshCommand = 'ssh';
-				sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
+		if(data.State.Name == 'running') {
+			sshCommand = 'ssh';
+			sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
 
-				console.log(sshCommand + " " + sshCommandArgs.join(" "));
-				connect = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
-					stdio: [
-				    	0, // Doesn't use parent's stdin for child
-				    	'pipe', // Direct child's stdout to an array output at index 1
-				    	'pipe' // Direct child's stderr to an array output at index 2
-				  	],
-				  	encoding: 'UTF-8'
-				});
+			console.log(sshCommand + " " + sshCommandArgs.join(" "));
+			connect = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
+				stdio: [
+			    	0, // Doesn't use parent's stdin for child
+			    	'pipe', // Direct child's stdout to an array output at index 1
+			    	'pipe' // Direct child's stderr to an array output at index 2
+			  	],
+			  	encoding: 'UTF-8'
+			});
 
-				if(connect.error) {
-					console.log("Error:", connect.error);
-					result.error.push("Instance output: Error:", connect.error);
-				} else if(connect.status == 0 && connect.signal == null && connect.output[1]) {
-					connectData = connect.output[1];
-					result.success.push("Instance output: Progress:", connectData);
-					console.log("Instance output: Progress:", connectData);
-				}
-				if(connect.output[1] && connect.output[1].includes('finished')) callback(result);
-				else connectInstance(data, keyName, result, callback);
+			if(connect.error) {
+				console.log("Error:", connect.error);
+				result.error.push("Instance output: Error:", connect.error);
+			} else if(connect.status == 0 && connect.signal == null && connect.output[1]) {
+				connectData = connect.output[1];
+				result.success.push("Instance output: Progress:", connectData);
+				console.log("Instance output: Progress:", connectData);
 			}
-		}, 10000);
-	});
+			if(connect.output[1] && connect.output[1].includes('finished')) callback(result, instanceData);
+			else connectInstance(instanceData, keyName, result, callback);
+		}
+	}, 10000);
 }
 
 var terminateInstance = function (instanceId, callback) {

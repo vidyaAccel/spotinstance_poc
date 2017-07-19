@@ -97,7 +97,7 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 		var sshCommand, sshCommandArgs, connect, connectData;
 		var output = 'tail /var/log/cloud-init-output.log';
 
-		if(data.State.Name == 'running') {
+		if(instanceData.State.Name == 'running') {
 			sshCommand = 'ssh';
 			sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
 

@@ -113,8 +113,10 @@ var jobConversion = function () {
 }
 
 exec('npm install mkdirp', function () {
-	var mkdirp = require('mkdirp');
-	mkdirp(process.env.HOME + '/Joblogs/', function () {
-		jobConversion();
-	});
+  exec('npm install aws-sdk', function () {
+	  var mkdirp = require('mkdirp');
+	  mkdirp(process.env.HOME + '/Joblogs/', function () {
+		  jobConversion();
+	  });
+  });
 });

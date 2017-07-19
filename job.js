@@ -26,10 +26,10 @@ var sqsUpload = function(jobname, callback) {
 
   sqs.sendMessage(sqsParams, function(err, data) {
 		if (err) {
-			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] SQS sending error: "+JSON.stringify(err), 'utf8');
+			fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] SQS sending error: "+JSON.stringify(err), 'utf8');
 		  return callback(err);
 		}
-		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] SQS sent data: "+JSON.stringify(data), 'utf8');
+		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] SQS sent data: "+JSON.stringify(data), 'utf8');
 		callback(null, {'result': true});
   });
 }
@@ -37,16 +37,14 @@ var sqsUpload = function(jobname, callback) {
 var s3Upload = function(jobname, callback) {
   var data = { Key: jobname+".jpg",
   	Body: fs.createReadStream(__dirname + '/images/output/' + jobname + 'thumb.jpg'),
-  	GrantRead: "uri=http://acs.amazonaws.com/groups/global/AllUsers",
-  	AccessControlPolicy: {},
   	ACL: 'public-read'
   };
-  s3Bucket.putObjectAcl(data, function(err, data) {
+  s3Bucket.putObject(data, function(err, data) {
 		if(err) {
-			fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploading error: "+JSON.stringify(err), 'utf8');
+			fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] S3 uploading error: "+JSON.stringify(err), 'utf8');
 		  return callback(err);
 		}
-		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] S3 uploaded data: "+JSON.stringify(data), 'utf8');
+		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] S3 uploaded data: "+JSON.stringify(data), 'utf8');
 		callback(null, {'result': true});
   });
 }
@@ -54,16 +52,14 @@ var s3Upload = function(jobname, callback) {
 var logUpload = function(file, callback) {
   var data = { Key: file.split("/")[file.split("/").length-1],
   	Body: fs.createReadStream(file),
-  	GrantRead: "uri=http://acs.amazonaws.com/groups/global/AllUsers",
-  	AccessControlPolicy: {},
   	ACL: 'public-read'
   };
-  s3Bucket.putObjectAcl(data, function(err, data) {
+  s3Bucket.putObject(data, function(err, data) {
 		if(err) {
-			console.log("["+new Date(Date.now())+"] Log File uploading error: "+JSON.stringify(err));
+			console.log("\n["+new Date(Date.now())+"] Log File uploading error: "+JSON.stringify(err));
 		  return callback(err);
 		}
-		console.log("["+new Date(Date.now())+"] Log File uploaded data: "+JSON.stringify(data));
+		console.log("\n["+new Date(Date.now())+"] Log File uploaded data: "+JSON.stringify(data));
 		callback(null, {'result': true});
   });
 }
@@ -71,33 +67,33 @@ var logUpload = function(file, callback) {
 
 var jobConversion = function () {
   var jobs = (input) ? input.split("#") : [];
-	fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Jobs to do: "+jobs, 'utf8');
+	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Jobs to do: "+jobs, 'utf8');
   common.each(jobs, function(job, job_callback) {
 		var jobname = job;
-		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Starting Job: " + job, 'utf8');
+		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Starting Job: " + job, 'utf8');
 		setTimeout(function () {
 			exec('convert' + " ./images/" + jobname + '.jpg -resize 50%' + ' ./images/output/' + jobname + 'thumb.jpg', function (error, stdout, stderr) {
 			  if(error || stderr) {
-			  	fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Job not done: "+jobname+"\n["+new Date(Date.now())+"] Error:"+(error || stderr), 'utf8');
+			  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job not done: "+jobname+"\n["+new Date(Date.now())+"] Error:"+(error || stderr), 'utf8');
 			  	return;
 			  }
-			  fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Job Done: "+jobname+"\n["+new Date(Date.now())+"] Success: "+stdout, 'utf8');
-			  fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Updating SQS....", 'utf8');
+			  fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job Done: "+jobname+"\n["+new Date(Date.now())+"] Success: "+stdout, 'utf8');
+			  fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Updating SQS....", 'utf8');
 			  sqsUpload(jobname, function(sqserr, result) {
 					if(!sqserr || result.result == true) {
-						fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Updated Job "+jobname+" in SQS.", 'utf8');
-						fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Uploading Result to S3....", 'utf8');
+						fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Updated Job "+jobname+" in SQS.", 'utf8');
+						fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Uploading Result to S3....", 'utf8');
 						s3Upload(jobname, function(s3err,result) {
 							if(!s3err || result.result == true) {
-								fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Uploaded Result of Job "+jobname+" to S3.", 'utf8');
+								fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Uploaded Result of Job "+jobname+" to S3.", 'utf8');
 					  		return;
 					  	} else {
-					  		fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Couldn't Upload Result of Job "+jobname+" to S3.", 'utf8');
+					  		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Couldn't Upload Result of Job "+jobname+" to S3.", 'utf8');
 					  		return;
 					  	}
 						});
 					} else {
-						fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Couldn't Update Job "+jobname+" in SQS.", 'utf8');
+						fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Couldn't Update Job "+jobname+" in SQS.", 'utf8');
 					  return;
 					}
 			  });
@@ -105,7 +101,7 @@ var jobConversion = function () {
 			job_callback();
 		}, 3*60*1000);
   }, function(err) {
-  	fs.appendFileSync(logFile, "["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
+  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
   	logUpload(logFile, function (err, res) {
   		exec('rm -rf ' + logFile, function () {
   			return;

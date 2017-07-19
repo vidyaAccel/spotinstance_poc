@@ -65,7 +65,7 @@ var getResult = function(path, callback) {
 	});
 }
 
-var startJobs = function (jobArray) {
+var startJobs = function (jobArray, callback) {
 	var jobName = jobArray.join("#");
 	getCredential(function (error, accessKey, secretKey) {
 		if(error) return;
@@ -77,15 +77,9 @@ var startJobs = function (jobArray) {
 				resultPath.push(resultFilePath);
 				console.log("start.js final output:----------------------->", instance, "\n", resultPath, "\n", terminate);
 			}
-			if(terminate == "Terminated") {
-				console.log("Spot Instance Terminated");
-			} else {
-				new checkSpotInstanceStatus(terminate, function (termSig) {
-					if(termSig == 'Terminated') {
-						console.log("Spot Instance Terminated");
-					}
-				});
-			}
+			checkSpotInstanceStatus(terminate, function (termSig) {
+				if(termSig == 'Terminated') callback(termSig);
+			});
 		});
 	});
 }
@@ -116,8 +110,9 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 	}
 }
 
-var sqsMonitor = function(jobArray) {
+var sqsMonitor = function(jobArray, waitTime, callback) {
 	setTimeout(function () {
+		console.log("inside Qmonitor");
 	  	var jobFinished = [];
 	  	var jobPending = [];
 	  	sqs.receiveMessage({
@@ -125,28 +120,49 @@ var sqsMonitor = function(jobArray) {
 	    	VisibilityTimeout: 60, // seconds - how long we want a lock on this job
 	    	WaitTimeSeconds: 3 // seconds - how long should we wait for a message?
 	 	}, function(err, data) {
-	      	if (data.Messages) {
+	 		console.log("received a Message", err, data);
+	      	if(data.Messages) {
 	       		common.each(data.Messages, function(message, job_callback) {
+	       			console.log("inside each message");
 	          		var jobname = JSON.parse(message.Body).jobname;
 	          		var id = message.MessageId;
 	          		var handler = message.ReceiptHandle
 	          		var Qmessage = JSON.stringify({"Id": id, "ReceiptHandle": handler});
 	          		if(!Qmessages.includes(Qmessage)) Qmessages.push(Qmessage);
-	          		if(jobArray.includes(jobname) && !jobFinished.includes(jobname)) jobFinished.push(jobname);
+	          		if(jobArray.includes(jobname) && !jobFinished.includes(jobname)) {
+	          			console.log("adding "+jobname+" to finished job");
+	          			jobFinished.push(jobname);
+	          			if(jobPending.includes(jobname)) {
+	          				jobPending.forEach(function (job, i) {
+	          					if(job == jobPending[i]) {
+	          						console.log("removed "+jobname+" from pending job");
+	          						jobPending.splice(i,1);
+	          					}
+	          				});
+	          			}
+	          		}
 	          		jobArray.forEach(function (job) {
-	          			if(job != jobname && !jobFinished.includes(jobname)) jobPending.push(jobname);
+	          			if(job != jobname && !jobFinished.includes(jobname)) {
+	          				console.log("adding "+jobname+" to pending jobs");
+	          				jobPending.push(jobname);
+	          			}
 	          		});
 	          		job_callback();
 	        	}, function(err) {
-	        		console.log("Total Jobs:", jobArray.length);
+	        		console.log(err);
+	        		console.log("Total Jobs:", jobArray);
+	        		console.log("Pending jobs:", jobPending);
+	        		console.log("Finished jobs", jobFinished);
 	        		if(jobPending.length > 0) {
 		            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 							if(instanceErr || instanceData.State.Name == 'terminated') {
 								console.log("Spot Instance Terminated. Jobs Finished:", jobFinished.length, "\nPending Jobs:", jobPending.length, "\nStarted Pending Jobs.");
-								startJobs(jobPending);
+								startJobs(jobPending, function () { console.log("Spot Instance Terminated"); });
+								sqsMonitor(jobPending, waitTime, callback);
 							} else {
+								instance = instanceData;
 								console.log("Waiting for Jobs to Complete.", jobPending);
-								sqsMonitor(jobArray);
+								sqsMonitor(jobPending, waitTime, callback);
 							}
 						});
 		            } else if(jobFinished.length == jobArray.length) {
@@ -163,7 +179,7 @@ var sqsMonitor = function(jobArray) {
 											else console.log("Result:", JSON.stringify(result));
 										});
 									});
-									console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("#") + ".txt to download logFile.");
+									console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("%23") + ".txt to download logFile.");
 								} else {
 									console.log("All Jobs Completed. Terminating Spot Instance.\nCompleted Jobs:", jobFinished.length);
 									spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
@@ -178,17 +194,15 @@ var sqsMonitor = function(jobArray) {
 													else console.log("Result:", JSON.stringify(result));
 												});
 											});
-											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("#") + ".txt to download logFile.");
-										} else {
-											console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
-										}
-									})
+											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobArray.join("%23") + ".txt to download logFile.");
+										} else console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
+									});
 								}
 			            	});
 						});
 		            }
 	        	});
-	      	}
+	      	} else sqsMonitor(jobArray, waitTime, callback);
 	   	});
 	}, waitTime * 60 * 1000);
 }
@@ -214,6 +228,11 @@ var deleteMessage = function (qURL, Qmessages, callback) {
 }
 
 console.log("Starting Job...", jobArray);
-startJobs(jobArray);
+startJobs(jobArray, function (termSig) {
+	console.log("Spot Instance Terminated");
+});
 console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray);
-sqsMonitor(jobArray);
+sqsMonitor(jobArray, waitTime, function (finished) {
+	if(finished == 'finished') console.log("Q Monitoring Stopped after All jobs Completed.");
+	else console.log("Something went wrong. Q Monitoring Stopped unexpectedly");
+});

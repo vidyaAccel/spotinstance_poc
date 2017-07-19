@@ -11,11 +11,12 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 	var result = {};
 	var date = new Date();
 	var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
-	var resultPath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID + '/result.json';
+	var resultFilePath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID;
+	var resultFile = resultFilePath + '/result.json';
 	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
 		if(error || !bidPrice) {
 			console.log("Error in getting Bid Price:", error);
-			return callback(error, null, resultPath, "Not Started");
+			return callback(error, null, resultFile, "Not Started");
 		}
 		console.log("Latest Spot Price is:", spotPrice);
 		console.log("Lowest Bid Price will be:", bidPrice);
@@ -24,10 +25,10 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 		console.log("Authorizing Key:", __dirname+'/'+inputData.Specification.KeyName+'.pem');
 		exec('chmod 400 '+__dirname+'/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
 			if(err) {
-				return callback(err, null, resultPath, "Not Started");
+				return callback(err, null, resultFile, "Not Started");
 			}
 			fs.readFile(__dirname + "/userData.txt", 'utf8', function (readErr, userData) {
-				if(readErr) return callback(readErr, null, resultPath, "Not Started");
+				if(readErr) return callback(readErr, null, resultFile, "Not Started");
 				var region = (inputData.Specification.Placement.AvailabilityZone).split("");
 				region.pop();
 				region = region.join("");
@@ -38,23 +39,25 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 				inputData.Specification.UserData = base64UserData;
 
 				spotInstance.requestSpotInstance(inputData, function (reqErr, requestId, requestState) {
-					if(reqErr) return callback(reqErr, null, resultPath, "Not Started");
+					if(reqErr) return callback(reqErr, null, resultFile, "Not Started");
 					
 					spotInstance.getInstanceId(requestId, requestState, function (idErr, instanceId) {
-						if(idErr) return callback(idErr, null, resultPath, "Running");
+						if(idErr) return callback(idErr, null, resultFile, "Running");
 						
 						spotInstance.getInstanceData(instanceId, function (instanceErr, instanceData) {
-							if(instanceErr) return callback(instanceErr, null, resultPath, "Running");
+							if(instanceErr) return callback(instanceErr, null, resultFile, "Running");
 							if (instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
 								console.log("Instance Terminated");
-								callback(null, instanceData, resultPath, "Terminated");
-							} else if (instanceData.State.Name == 'running') {
-								console.log('Sending back instance data and result file path......');
-								callback(null, instanceData, resultPath, "Running");
-								spotInstance.getInstanceOutput(instanceData, inputData.Specification.KeyName, result, resultPath, function (result) {
-									mkdirp(resultPath,function(){
-										fs.writeFile(resultPath, result, function (err) {
-											if(err) console.log("Couldn't write result file at ", resultPath);
+								callback(null, instanceData, resultFile, "Terminated");
+							} else if (instanceData.State.Name == 'running' || instanceData.State.Name == 'pending') {
+								console.log('Got instance data and result file path......', resultFile);
+								callback(null, instanceData, resultFile, "Running");
+								mkdirp(resultFilePath,function(){
+									result['success'] = [];
+									result['error'] = [];
+									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result) {
+										fs.writeFile(resultFile, result, function (err) {
+											if(err) console.log("Couldn't write result file at ", resultFile);
 										});
 									});
 								});
@@ -70,7 +73,8 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 var checkTermination = function (instanceData, callback) {
 	if(terminate == false) {
 		if(instanceData.State.Name == 'running') {
-			exec('if curl -s http://'+instanceData.PublicIpAddress+'/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then echo terminated; fi', function (tErr, tstdout, tstderr) {
+			var timeOut = {timeout: 5000,killSignal: 'SIGKILL'}
+			exec('if curl -s http://'+instanceData.PublicIpAddress+'/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then echo terminated; fi', timeOut, function (tErr, tstdout, tstderr) {
 				if(tstdout == "terminated") {
 					return callback("Termination signal");
 				}

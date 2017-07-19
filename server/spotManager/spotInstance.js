@@ -54,12 +54,12 @@ var getInstanceId = function (requestId, requestState, callback) {
 
 var getInstanceData = function (instanceId, callback) {
 	console.log("Getting instance data of :", instanceId);
-	var spotCommand, spotCommandArgs, instanceData, getInstanceData;
+	var spotCommand, spotCommandArgs, instanceData, instance;
 	spotCommand = 'aws';
 	spotCommandArgs = ['ec2', 'describe-instances', '--instance-ids', instanceId];
 
-	console.log(spotCommand, spotCommandArgs);
-	getInstanceData = spawnSync(spotCommand, spotCommandArgs, { maxBuffer: 200*1024*1024,
+	console.log(spotCommand + " " + spotCommandArgs.join(" "));
+	instance = spawnSync(spotCommand, spotCommandArgs, { maxBuffer: 200*1024*1024,
 		stdio: [
 	    	0, // Doesn't use parent's stdin for child
 	    	'pipe', // Direct child's stdout to an array output at index 1
@@ -68,88 +68,55 @@ var getInstanceData = function (instanceId, callback) {
 	  	encoding: 'UTF-8'
 	});
 
-	if(getInstanceData.output[2] || getInstanceData.error) {
-		console.log("Error:", (getInstanceData.output[2] || getInstanceData.error));
-		callback(getInstanceData.output[2] || getInstanceData.error, null);
-	} else if(getInstanceData.status == 0 && getInstanceData.signal == null && getInstanceData.output[1]) {
-		instanceData = JSON.parse(getInstanceData.output[1])['Reservations'][0]['Instances'][0];
+	if(instance.output[2] || instance.error) {
+		console.log("Error:", (instance.output[2] || instance.error));
+		callback(instance.output[2] || instance.error, null);
+	} else if(instance.status == 0 && instance.signal == null && instance.output[1]) {
+		instanceData = JSON.parse(instance.output[1])['Reservations'][0]['Instances'][0];
 		console.log("Spot Instance Data:\n", instanceData);
-		callback(null, instanceData);
+		if(instanceData.State.Name == 'pending') getInstanceData(instanceData.InstanceId, callback);
+		else callback(null, instanceData);
 	}
 }
 
 
-var connectInstance = function (instanceData, keyName, result, resultPath, callback) {
-	var sshCommand, sshCommandArgs, connectInstance, connectData;
-	var output = 'tail /var/log/cloud-init-output.log';
-	result['success'] = [];
-	result['error'] = [];
+var connectInstance = function (instanceData, keyName, result, callback) {
+	console.log("Running Jobs in instance.....")
+	setTimeout(function () {
+		var sshCommand, sshCommandArgs, connect, connectData;
+		var output = 'tail /var/log/cloud-init-output.log';
 
-	if(instanceData.State.Name == 'running') {
-		sshCommand = 'ssh';
-		sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
+		if(instanceData.State.Name == 'running') {
+			sshCommand = 'ssh';
+			sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
 
-		console.log(sshCommand, sshCommandArgs);
-		connectInstance = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
-			stdio: [
-		    	0, // Doesn't use parent's stdin for child
-		    	'pipe', // Direct child's stdout to an array output at index 1
-		    	'pipe' // Direct child's stderr to an array output at index 2
-		  	],
-		  	encoding: 'UTF-8'
-		});
+			console.log(sshCommand + " " + sshCommandArgs.join(" "));
+			connect = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
+				stdio: [
+			    	0, // Doesn't use parent's stdin for child
+			    	'pipe', // Direct child's stdout to an array output at index 1
+			    	'pipe' // Direct child's stderr to an array output at index 2
+			  	],
+			  	encoding: 'UTF-8'
+			});
 
-		if(connectInstance.output[2] || connectInstance.error) {
-			console.log("Error:", (connectInstance.output[2] || connectInstance.error));
-			result.error.push("Instance output: Error:", (connectInstance.output[2] || connectInstance.error));
-		} else if(connectInstance.status == 0 && connectInstance.signal == null && connectInstance.output[1]) {
-			connectData = JSON.parse(connectInstance.output[1]);
-			result.success.push("Instance output: Progress:", connectData);
-			console.log("Instance output: Progress:", connectData);
+			if(connect.error) {
+				console.log("Error:", connect.error);
+				result.error.push("Instance output: Error:", connect.error);
+			} else if(connect.status == 0 && connect.signal == null && connect.output[1]) {
+				connectData = connect.output[1];
+				result.success.push("Instance output: Progress:", connectData);
+				console.log("Instance output: Progress:", connectData);
+			}
+			if(connectData.includes('finished')) callback(result);
+			else connectInstance(instanceData, keyName, result, callback);
+		} else if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
+			console.log("Instance Terminated");
+			result.success.push("Did not run");
+			result.error.push("Instance Terminated");
 			callback(result);
 		}
-	} else if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
-		console.log("Instance Terminated");
-		result.success.push("Did not run");
-		result.error.push("Instance Terminated");
-		callback(result);
-	}
-}
-
-var getInstanceOutput = function (instanceData, keyName, result, resultPath, callback) {
-	var sshCommand, sshCommandArgs, connectInstance, connectData;
-	result['success'] = [];
-	result['error'] = [];
-	
-	if(instanceData.State.Name == 'running') {
-		sshCommand = 'ssh';
-		sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, '-p 4000'];
-
-		console.log(sshCommand, sshCommandArgs);
-		connectInstance = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
-			stdio: [
-		    	0, // Doesn't use parent's stdin for child
-		    	'pipe', // Direct child's stdout to an array output at index 1
-		    	'pipe' // Direct child's stderr to an array output at index 2
-		  	],
-		  	encoding: 'UTF-8'
-		});
-
-		if(connectInstance.output[2] || connectInstance.error) {
-			console.log("Error:", (connectInstance.output[2] || connectInstance.error));
-			result.error.push("Instance output: Error:", (connectInstance.output[2] || connectInstance.error));
-		} else if(connectInstance.status == 0 && connectInstance.signal == null && connectInstance.output[1]) {
-			connectData = JSON.parse(connectInstance.output[1]);
-			result.success.push("Instance output: Progress:", connectData);
-			console.log("Instance output: Progress:", connectData);
-			callback(result);
-		}
-	} else if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
-		console.log("Instance Terminated");
-		result.success.push("Did not run");
-		result.error.push("Instance Terminated");
-		callback(result);
-	}
+	}, 40000);
 }
 
 var terminateInstance = function (instanceId, callback) {
@@ -181,6 +148,5 @@ exports.requestSpotInstance = requestSpotInstance;
 exports.getInstanceId = getInstanceId;
 exports.getInstanceData = getInstanceData;
 exports.connectInstance = connectInstance;
-exports.getInstanceOutput = getInstanceOutput;
 exports.terminateInstance = terminateInstance;
 exports.cancelRequest = cancelRequest;

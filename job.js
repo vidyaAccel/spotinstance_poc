@@ -104,7 +104,7 @@ var jobConversion = function () {
   	setTimeout(function () {
 	  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
 	  	logUpload(logFile, function (err, res) {
-	  		console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + input + ".txt to download logFile.");
+	  		console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobs.join("%23") + ".txt to download logFile.");
 	  		exec('rm -rf ' + logFile, function () {
 	  			return;
 	  		});

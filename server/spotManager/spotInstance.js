@@ -83,12 +83,12 @@ var getInstanceData = function (instanceId, callback) {
 var connectInstance = function (instanceData, keyName, result, callback) {
 	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
 		console.log("Instance Terminated");
-		result.success.push("Did not run");
+		result.success.push("Instance Terminated");
 		result.error.push("Instance Terminated");
 		return callback(result, instanceData);
 	} else if(instance_terminated[instanceData.InstanceId]) {
 		console.log("Instance Terminated");
-		result.success.push("Did not run");
+		result.success.push("Instance Terminated");
 		result.error.push("Instance Terminated");
 		return callback(result, instanceData);
 	}
@@ -114,17 +114,59 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 					console.log("Error:", (connect.error || connect.output[2]));
 					result.error.push((connect.error || connect.output[2]));
 				}
-			} else if(connect.status == 0 && connect.signal == null && connect.output[1]) {
-				connectData = connect.output[1];
-				if(!result.success.includes(connectData)) {
-					result.success.push(connectData);
-					console.log("Instance output: Progress:", connectData);
-				}
 			}
-			if(connect.output[1] && connect.output[1].includes('finished')) callback(result, instanceData);
-			else connectInstance(instanceData, keyName, result, callback);
+			if(connect.output[1] && connect.output[1].includes('finished')) {
+				var finalResult = {};
+				finalResult = {};
+				saveOutput(instanceData, keyName, result, finalResult, function (finalOutput) {
+					callback(finalOutput, instanceData);
+				});
+			} else connectInstance(instanceData, keyName, result, callback);
 		}
 	}, 2000);
+}
+
+var saveOutput = function (instanceData, keyName, mainResult, result, callback) {
+	var command, commandArgs, connect, connectData;
+
+	result['success'] = [];
+	result['error'] = [];
+
+	command = 'aws';
+	commandArgs = ['ec2', 'get-console-output', '--instance-id', instanceData.InstanceId];
+
+	console.log(command + ' ' + commandArgs.join(' '));
+	connect = spawnSync(command, commandArgs, { maxBuffer: 200*1024*1024,
+		stdio: [
+	    	0, // Doesn't use parent's stdin for child
+	    	'pipe', // Direct child's stdout to an array output at index 1
+	    	'pipe' // Direct child's stderr to an array output at index 2
+	  	],
+	  	encoding: 'UTF-8'
+	});
+
+	if(connect.error || connect.output[2]) {
+		if(!result.error.includes(connect.error || connect.output[2])) {
+			if(!result.error.includes(connect.error || connect.output[2])) {
+				result.error.push((connect2.error || connect.output[2]));
+			}
+		}
+	} else if(connect.output[1]) {
+		connectData = new Buffer(JSON.parse(connect.output[1])["Output"], 'base64').toString('ascii');
+		if(!result.success.includes(connectData)) {
+			result.success.push(connectData);
+		}
+	}
+
+	setTimeout(function () {
+		if(connect.status == 0 && connect.signal == null && connect.output[1]) {
+			if(!result.error.includes(mainResult.error)) result.error.push(mainResult.error);
+			var success = result.success.split(",")[0];
+			result.success = [];
+			result.success.push(success);
+			callback(result);
+		}
+	}, 10000);
 }
 
 var terminateInstance = function (instanceId, callback) {

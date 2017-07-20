@@ -8,7 +8,6 @@ var AWS, sqs, s3Bucket, resultPath = [];
 
 global.completed = {};
 global.instance_terminated = {};
-global.results = [];
 
 try {
 	AWS = require('aws-sdk');
@@ -81,7 +80,7 @@ var startJobs = function (jobArray, callback) {
 				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				resultPath.push(resultFilePath);
-				console.log("start.js final output:----------------------->", instance, "\n", resultPath, "\n", terminate);
+				console.log("start.js final output:----------------------->\n", instance, "\n", resultPath, "\n", terminate);
 			}
 			console.log("Spot Instance Running.......");
 			checkSpotInstanceStatus(terminate, function (termSig) {
@@ -111,7 +110,7 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 				} else setTimeout(function () { subcheck(); }, 1000);
 			}
 		} else {
-			if(termSig == "Terminating by User" && instance_terminated[instance.InstanceId] == false) console.log("Terminating Spot Instance");
+			if(termSig == "Terminating by User" && instance.State.Name != 'terminated') console.log("Terminating Spot Instance");
 			spotManager.checkTermination(instance, function (terminate) {
 				setTimeout(function () { checkSpotInstanceStatus(terminate, callback); }, 5000);
 			});
@@ -166,13 +165,13 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	        		console.log("Finished jobs", jobFinished);
 	        		if(jobPending.length > 0) {
 		            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
+							instance = instanceData;
 							if(instanceErr || instanceData.State.Name == 'terminated') {
 								instance_terminated[instanceData.InstanceId] = true;
 								console.log("Spot Instance Terminated. Jobs Finished:", jobFinished.length, "\nPending Jobs:", jobPending.length, "\nStarted Pending Jobs.");
 								startJobs(jobPending, function () { console.log("Spot Instance Terminated"); });
 								sqsMonitor(jobPending, 0.5, callback);
 							} else {
-								instance = instanceData;
 								console.log("Waiting for Jobs to Complete.", jobPending);
 								if(completed[instance.InstanceId]) console.log("Waiting for result to upload....");
 								sqsMonitor(jobPending, 0.5, callback);
@@ -183,6 +182,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 		            	if(completed[instance.InstanceId]) {
 			            	//deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
 				            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
+				            		instance = instanceData;
 				            		if(instanceErr || instanceData.State.Name == 'terminated') {
 										console.log("Spot Instance Terminated. All Jobs Completed.\nCompleted Jobs:", jobFinished.length);
 										finishedJobs.forEach(function (job) {
@@ -191,10 +191,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 										resultPath.forEach(function (path) {
 											getResult(path, function (err, result) {
 												if(err) console.log("Error in getting Result:", err);
-												else {
-													console.log("Result: goto http://localhost:8081/"+ path.split("/")[path.split("/").length-2] +" to see the result.");
-													results.push(path);
-												}
+												else console.log("Result: goto http://localhost:8081/result/"+ path.split("/")[path.split("/").length-2] +" to see the result.");
 											});
 										});
 										console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
@@ -210,10 +207,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 												resultPath.forEach(function (path) {
 													getResult(path, function (err, result) {
 														if(err) console.log("Error in getting Result:", err);
-														else {
-															console.log("Result: goto http://localhost:8081/"+ path.split("/")[path.split("/").length-2] +" to see the result.");
-															results.push(path);
-														}
+														else console.log("Result: goto http://localhost:8081/result/"+ path.split("/")[path.split("/").length-2] +" to see the result.");
 													});
 												});
 												console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
@@ -231,7 +225,10 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 						}
 		            }
 	        	});
-	      	} else sqsMonitor(jobArray, 0.5, callback);
+	      	} else {
+	      		if(completed[instance.InstanceId]) return callback("Not Finished");
+	      		sqsMonitor(jobArray, 0.5, callback);
+	      	}
 	   	});
 	}, waitTime * 60 * 1000);
 }
@@ -256,15 +253,27 @@ var deleteMessage = function (qURL, Qmessages, callback) {
 	}, 2000);
 }
 
-console.log("Starting Job...", jobArray);
-var close = false;
-startJobs(jobArray, function (termSig) {
-	console.log("Spot Instance Terminated");
-	close = true;
-});
-console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray);
-sqsMonitor(jobArray, waitTime, function (finished) {
-	if(finished == 'finished') console.log("Q Monitoring Stopped after All jobs Completed.");
-	else console.log("Something went wrong. Q Monitoring Stopped unexpectedly");
-	if(close) return;
+function execute (jobArray, waitTime, callback) {
+	console.log("Starting Job...", jobArray);
+	var closeJob = closeMonitor = false;
+	startJobs(jobArray, function (termSig) {
+		console.log("Spot Instance Terminated");
+		closeJob = true;
+	});
+	console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray);
+	sqsMonitor(jobArray, waitTime, function (finished) {
+		if(finished == 'finished') console.log("Q Monitoring Stopped after All jobs Completed.");
+		else console.log("Something went wrong. Q Monitoring Stopped unexpectedly");
+		closeMonitor = true;
+	});
+
+	var check = function () {
+		if(closeJob && closeMonitor) return callback(true);
+		else setTimeout(function () { check(); }, 5000);
+	}
+	check();
+}
+
+execute(jobArray, waitTime, function (result) {
+	console.log("Finished");
 });

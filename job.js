@@ -105,7 +105,7 @@ var jobConversion = function () {
   	setTimeout(function () {
 	  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
 	  	logUpload(logFile, function (err, res) {
-	  		console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + jobs.join("%23") + ".txt to download logFile.");
+	  		console.log('<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/' + jobs.join('%23')+ '.txt">Open this link to download logFile.</a>');
 	  		exec('rm -rf ' + logFile, function () {
 	  			return;
 	  		});
@@ -114,4 +114,5 @@ var jobConversion = function () {
   });
 }
 
+console.log("Docker installed and Runniing Jobs....");
 jobConversion();

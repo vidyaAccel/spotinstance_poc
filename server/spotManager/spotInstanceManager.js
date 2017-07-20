@@ -32,7 +32,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 				var region = (inputData.Specification.Placement.AvailabilityZone).split("");
 				region.pop();
 				region = region.join("");
-				data = "sudo docker run -e accessKey="+accessKey+" -e secretKey="+secretKey+" -e region="+region+" -e job="+jobName+" -p 4000:80 -i "+inputData.repository;
+				data = 'sudo docker run -e accessKey='+accessKey+' -e secretKey='+secretKey+' -e region='+region+' -e job='+jobName+' -p 4000:80 -i '+inputData.repository+' | tee -a "$logfile\"';
 				userData += data;
 				console.log("userData:\n", userData);
 				var base64UserData = new Buffer(userData).toString('base64');
@@ -82,10 +82,11 @@ var checkTermination = function (instanceData, callback) {
 				}
 				callback("Running");
 			});
-		} else if (instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated') {
+		} else if (instanceData.State.Name == 'terminated') {
 			callback("Terminated");
 		}
 	} else {
+		if (instanceData.State.Name == 'terminated') return callback("Terminated");
 		callback("Terminating by User");
 	}
 }

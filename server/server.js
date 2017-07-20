@@ -2,7 +2,7 @@ var express = require('express'),
 	app = express(),
 	fs = require('fs');
 
-app.get('/:id', function (req, res) {
+app.get('/result/:id', function (req, res) {
 	var result = process.env.HOME + '/workspace/resultsOfSpotPOC/' + req.params.id + "/result.json";
 	fs.readFile(result, function(err, data){
 		if(err) {
@@ -13,7 +13,7 @@ app.get('/:id', function (req, res) {
 			var html = '<html><head><title>Job Result</title></head><body>';
 			var success = JSON.parse(data).success.join("").replace(/\n/g, '<br/>');
 			var error = JSON.parse(data).error.join("").replace(/\n/g, '<br/>');
-			html += '<div>Result:<br/>' + success + '</div><br/><div>Errors:<br/>' + error + '<br/></div></body></html>';
+			html += '<div><b>Result:</b><br/>' + success + '</div><br/><div><b>Errors:</b><br/>' + error + '<br/></div></body></html>';
 			res.writeHead(200, {'Content-Type': 'text/html'});
 			res.write(html);
 		}

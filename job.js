@@ -35,7 +35,7 @@ var sqsUpload = function(jobname, callback) {
 }
 
 var s3Upload = function(jobname, callback) {
-  var data = { Key: jobname+".jpg",
+  var data = { Key: jobname+"thumb.jpg",
   	Body: fs.createReadStream(__dirname + '/images/output/' + jobname + 'thumb.jpg'),
   	ACL: 'public-read'
   };

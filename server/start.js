@@ -180,12 +180,12 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 		            } else if(jobFinished.length == jobArray.length) {
 		            	console.log("completed All Jobs:", completed[instance.InstanceId]);
 		            	if(completed[instance.InstanceId]) {
-			            	deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
+			            	//deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
 				            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 				            		if(instanceErr || instanceData.State.Name == 'terminated') {
 										console.log("Spot Instance Terminated. All Jobs Completed.\nCompleted Jobs:", jobFinished.length);
 										finishedJobs.forEach(function (job) {
-											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + "thumb.jpg to download converted image.");
+											console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".gif to download converted image.");
 										});
 										resultPath.forEach(function (path) {
 											getResult(path, function (err, result) {
@@ -201,7 +201,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 											if(terminated) {
 												console.log("Spot Instance Terminated");
 												finishedJobs.forEach(function (job) {
-													console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + "thumb.jpg to download converted image.");
+													console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + job + ".gif to download converted image.");
 												});
 												resultPath.forEach(function (path) {
 													getResult(path, function (err, result) {
@@ -218,7 +218,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 										});
 									}
 				            	});
-							});
+							//});
 						} else {
 							sqsMonitor(finishedJobs, 0.5, callback);
 						}

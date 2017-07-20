@@ -35,8 +35,8 @@ var sqsUpload = function(jobname, callback) {
 }
 
 var s3Upload = function(jobname, callback) {
-  var data = { Key: jobname+"thumb.jpg",
-  	Body: fs.createReadStream(__dirname + '/images/output/' + jobname + 'thumb.jpg'),
+  var data = { Key: jobname + ".gif",
+  	Body: fs.createReadStream(__dirname + '/images/output/' + jobname + '.gif'),
   	ACL: 'public-read'
   };
   s3Bucket.putObject(data, function(err, data) {
@@ -72,7 +72,8 @@ var jobConversion = function () {
 		var jobname = job;
 		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Starting Job: " + job, 'utf8');
 		setTimeout(function () {
-			exec('convert' + " ./images/" + jobname + '.jpg -resize 50%' + ' ./images/output/' + jobname + 'thumb.jpg', function (error, stdout, stderr) {
+			var command = 'mogrify -format gif -path ./output/ -thumbnail 200x200 ' + jobname + '.jpg';
+			exec(command, { cwd: __dirname + '/images/' }, function (error, stdout, stderr) {
 			  if(error || stderr) {
 			  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job not done: "+jobname+"\n["+new Date(Date.now())+"] Error:"+(error || stderr), 'utf8');
 			  	return;

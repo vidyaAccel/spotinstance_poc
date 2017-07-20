@@ -8,6 +8,7 @@ var AWS, sqs, s3Bucket, resultPath = [];
 
 global.completed = {};
 global.instance_terminated = {};
+global.results = [];
 
 try {
 	AWS = require('aws-sdk');
@@ -22,7 +23,7 @@ var jobArg = process.argv[2].split("jobs=")[1];
 var Time = process.argv[3].split('time=')[1];
 var jobArray = jobArg.split(',');
 var finishedJobs = [];
-var waitTime = parseInt(Time);
+var waitTime = parseInt(Time.split('minute')[0]);
 var inputData = {};
 var instance;
 var Qmessages = [];
@@ -171,9 +172,9 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 								startJobs(jobPending, function () { console.log("Spot Instance Terminated"); });
 								sqsMonitor(jobPending, 0.5, callback);
 							} else {
-								instance_terminated[instanceData.InstanceId] = false;
 								instance = instanceData;
 								console.log("Waiting for Jobs to Complete.", jobPending);
+								if(completed[instance.InstanceId]) console.log("Waiting for result to upload....");
 								sqsMonitor(jobPending, 0.5, callback);
 							}
 						});
@@ -190,7 +191,10 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 										resultPath.forEach(function (path) {
 											getResult(path, function (err, result) {
 												if(err) console.log("Error in getting Result:", err);
-												else console.log("Result: goto " + path + " to see the result.");
+												else {
+													console.log("Result: goto http://localhost:8081/"+ path.split("/")[path.split("/").length-2] +" to see the result.");
+													results.push(path);
+												}
 											});
 										});
 										console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
@@ -206,7 +210,10 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 												resultPath.forEach(function (path) {
 													getResult(path, function (err, result) {
 														if(err) console.log("Error in getting Result:", err);
-														else console.log("Result: goto " + path + " to see the result.");
+														else {
+															console.log("Result: goto http://localhost:8081/"+ path.split("/")[path.split("/").length-2] +" to see the result.");
+															results.push(path);
+														}
 													});
 												});
 												console.log("Click Here-> https://tsgpoc.s3-us-west-2.amazonaws.com/" + finishedJobs.join("%23") + ".txt to download logFile.");
@@ -250,11 +257,14 @@ var deleteMessage = function (qURL, Qmessages, callback) {
 }
 
 console.log("Starting Job...", jobArray);
+var close = false;
 startJobs(jobArray, function (termSig) {
 	console.log("Spot Instance Terminated");
+	close = true;
 });
 console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray);
 sqsMonitor(jobArray, waitTime, function (finished) {
 	if(finished == 'finished') console.log("Q Monitoring Stopped after All jobs Completed.");
 	else console.log("Something went wrong. Q Monitoring Stopped unexpectedly");
+	if(close) return;
 });

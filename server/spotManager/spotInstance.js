@@ -124,7 +124,7 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			if(connect.output[1] && connect.output[1].includes('finished')) callback(result, instanceData);
 			else connectInstance(instanceData, keyName, result, callback);
 		}
-	}, 5000);
+	}, 2000);
 }
 
 var terminateInstance = function (instanceId, callback) {

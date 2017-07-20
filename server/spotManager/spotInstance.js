@@ -101,7 +101,6 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
 
 			connect = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
-				timeout: 5000,
 				stdio: [
 			    	0, // Doesn't use parent's stdin for child
 			    	'pipe', // Direct child's stdout to an array output at index 1

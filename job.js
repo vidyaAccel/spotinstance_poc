@@ -99,7 +99,7 @@ var jobConversion = function () {
 					}
 			  	});
 			});
-		}, 3*60*1000);
+		}, 60*1000);
   	}, function(err) {
 	  	setTimeout(function () {
 		  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');

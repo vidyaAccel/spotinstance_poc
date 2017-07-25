@@ -66,52 +66,51 @@ var logUpload = function(file, callback) {
 
 
 var jobConversion = function () {
-  var jobs = (input) ? input.split("#") : [];
-	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Jobs to do: "+jobs, 'utf8');
-  common.each(jobs, function(job, job_callback) {
+    var jobs = (input) ? input.split("#") : [];
+    fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Jobs to do: "+jobs, 'utf8');
+    common.each(jobs, function(job, job_callback) {
 		var jobname = job;
 		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Starting Job: " + job, 'utf8');
 		setTimeout(function () {
 			var command = 'mogrify -format gif -path ./output/ -thumbnail 200x200 ' + jobname + '.jpg';
 			exec(command, { cwd: __dirname + '/images/' }, function (error, stdout, stderr) {
-			  if(error || stderr) {
-			  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job not done: "+jobname+"\n["+new Date(Date.now())+"] Error:"+(error || stderr), 'utf8');
-			  	return;
-			  }
-			  fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job Done: "+jobname+"\n["+new Date(Date.now())+"] Success: "+stdout, 'utf8');
-			  fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Updating SQS....", 'utf8');
-			  sqsUpload(jobname, function(sqserr, result) {
+			    if(error || stderr) {
+			  		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job not done: "+jobname+"\n["+new Date(Date.now())+"] Error:"+(error || stderr), 'utf8');
+			  		return job_callback();;
+			  	}
+			  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Job Done: "+jobname+"\n["+new Date(Date.now())+"] Success: "+stdout, 'utf8');
+			  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Updating SQS....", 'utf8');
+			  	sqsUpload(jobname, function(sqserr, result) {
 					if(!sqserr || result.result == true) {
 						fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Updated Job "+jobname+" in SQS.", 'utf8');
 						fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Uploading Result to S3....", 'utf8');
 						s3Upload(jobname, function(s3err,result) {
 							if(!s3err || result.result == true) {
 								fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Uploaded Result of Job "+jobname+" to S3.", 'utf8');
-					  		return;
-					  	} else {
-					  		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Couldn't Upload Result of Job "+jobname+" to S3.", 'utf8');
-					  		return;
-					  	}
+					  			return job_callback();
+						  	} else {
+						  		fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Couldn't Upload Result of Job "+jobname+" to S3.", 'utf8');
+						  		return job_callback();
+						  	}
 						});
 					} else {
 						fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Couldn't Update Job "+jobname+" in SQS.", 'utf8');
-					  return;
+						return job_callback();
 					}
-			  });
+			  	});
 			});
-			job_callback();
 		}, 3*60*1000);
-  }, function(err) {
-  	setTimeout(function () {
-	  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
-	  	logUpload(logFile, function (err, res) {
-	  		console.log('<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/' + jobs.join('%23')+ '.txt">Open this link to download logFile.</a>');
-	  		exec('rm -rf ' + logFile, function () {
-	  			return;
-	  		});
-	  	});
-  	}, 30*1000);
-  });
+  	}, function(err) {
+	  	setTimeout(function () {
+		  	fs.appendFileSync(logFile, "\n["+new Date(Date.now())+"] Completed All Jobs "+jobs, 'utf8');
+		  	logUpload(logFile, function (err, res) {
+		  		console.log('<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/' + jobs.join('%23')+ '.txt">Open this link to download logFile.</a>');
+		  		exec('rm -rf ' + logFile, function () {
+		  			return;
+		  		});
+		  	});
+	  	}, 30*1000);
+  	});
 }
 
 console.log("Docker installed and Runniing Jobs....");

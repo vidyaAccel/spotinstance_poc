@@ -7,19 +7,34 @@ var spotInstance 	= require("./spotInstance.js");
 
 var terminate = false;
 
-var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callback) {
+var getSpotInstance = function (jobName, accessKey, secretKey, inputData, resultPath, callback) {
 	var result = {};
-	var date = new Date();
-	var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
-	var resultFilePath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID;
-	var resultFile = resultFilePath + '/result.json';
+	result['success'] = [];
+	result['error'] = [];
+	var resultFilePath, resultFile;
+	if(resultPath.length == 0) {
+		var date = new Date();
+		var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
+		resultFilePath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID;
+		resultFile = resultFilePath + '/result.json';
+	} else {
+		var temp = resultPath[0].split('/');
+		temp.pop();
+		resultFilePath = temp.join('/');
+		resultFile = resultPath[0];
+		fs.readFile(resultFile, 'utf8', function (err, data) {
+			if(!err || data) result = JSON.parse(data); 
+		});
+	}
+
+	resultFile = resultPath[0];
 	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
 		if(error || !bidPrice) {
 			console.log("Error in getting Bid Price:", error);
 			return callback(error, null, resultFile, "Not Started");
 		}
-		console.log("Latest Spot Price is:", spotPrice);
-		console.log("Lowest Bid Price will be:", bidPrice);
+		console.log("\n=========================================\nLatest Spot Price is:", spotPrice);
+		console.log("Lowest Bid Price will be:", bidPrice+'\n=========================================\n');
 
 		inputData.SpotPrice = bidPrice;
 		console.log("Authorizing Key:", __dirname+'/'+inputData.Specification.KeyName+'.pem');
@@ -53,15 +68,15 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 								console.log('Got instance data and result file path......', resultFile);
 								callback(null, instanceData, resultFile, "Running");
 								mkdirp(resultFilePath,function(){
-									result['success'] = [];
-									result['error'] = [];
-									console.log("Running Jobs in instance.\nPlease wait for Jobs to complete......");
-									spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result, instanceData) {
-										fs.writeFile(resultFile, JSON.stringify(result), function (err) {
-											if(err) console.log("Couldn't write result file at ", resultFile);
-											completed[instanceData.InstanceId] = true;
+									console.log("\n=========================================\nRunning Jobs in instance.\nPlease wait for Jobs to complete......\n=========================================\n");
+									setTimeout(function () {	
+										spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result, instanceData) {
+											fs.writeFile(resultFile, JSON.stringify(result), function (err) {
+												if(err) console.log("Couldn't write result file at ", resultFile);
+												completed[instanceData.InstanceId] = true;
+											});
 										});
-									});
+									}, 120000);
 								});
 							}
 						});
@@ -73,6 +88,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, callba
 }
 
 var checkTermination = function (instanceData, callback) {
+	console.log('\n=========================================\nChecking terminate request from AWS\n=========================================\n')
 	if(terminate == false) {
 		if(instanceData.State.Name == 'running') {
 			var timeOut = {timeout: 5000,killSignal: 'SIGKILL'}
@@ -97,38 +113,38 @@ var terminateAndCancel = function (instanceId, spotRquestType, callback) {
 		spotInstance.getInstanceData(instanceId, function (instanceErr, instanceData) {
 			if(!instanceErr || instanceData) {
 				if (instanceData.State.Name == 'terminated') {
-					console.log("Instance Terminated");
-					terminate = false;
-					if(spotRquestType == 'persistent') {
+					console.log("\n=========================================\nInstance Terminated by Q monitor after job finished.\n=========================================\n");
+					//if(spotRquestType == 'persistent') {
 						spotInstance.cancelRequest(instanceData.SpotInstanceRequestId, function (error, cancel) {
+							terminate = false;
 							if(error || !cancel) {
-								console.log("Couldn't Cancel Spot Request. Please Try Manually in AWS Console!!");
+								console.log("\n=========================================\nCouldn't Cancel Spot Request. Please Try Manually in AWS Console!!\n=========================================\n");
 								return callback(false);
 							}
 							callback(true);
 						});
-					} else callback(true);
+					//} else callback(true);
 				} else if (instanceData.State.Name == 'shutting-down') {
 					setTimeout(function () { instance_terminate(); }, 2000);
 				} else {
 					spotInstance.terminateInstance(instanceData.InstanceId, function (err, termSig) {
 						if(!err || termSig == 'terminated') {
-							console.log("Instance Terminated");
-							terminate = false;
-							if(spotRquestType == 'persistent') {
+							console.log("\n=========================================\nInstance Terminated by Q monitor after job finished.\n=========================================\n");
+							//if(spotRquestType == 'persistent') {
 								spotInstance.cancelRequest(instanceData.SpotInstanceRequestId, function (error, cancel) {
+									terminate = false;
 									if(error || !cancel) {
-										console.log("Couldn't Cancel Spot Request. Please Try Manually in AWS Console!!");
+										console.log("\n=========================================\nCouldn't Cancel Spot Request. Please Try Manually in AWS Console!!\n=========================================\n");
 										return callback(false);
 									}
 									callback(true);
 								});
-							} else callback(true);
+							//} else callback(true);
 						} else if(termSig == 'shutting-down') {
 							setTimeout(function () { instance_terminate(); }, 2000);
 						} else {
 							terminate = false;
-							if(spotRquestType == 'persistent') console.log("Couldn't Cancel Spot Request. Please Try Manually in AWS Console!!");
+							console.log("\n=========================================\nCouldn't Cancel Spot Request. Please Try Manually in AWS Console!!\n=========================================\n");
 							callback(false);
 						}
 					});

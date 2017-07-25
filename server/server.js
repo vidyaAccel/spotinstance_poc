@@ -1,8 +1,55 @@
-var express = require('express'),
-	app = express(),
-	fs = require('fs');
+var express 	= require('express'),
+	bodyParser = require('body-parser'),
+	fs 			= require('fs'),
+	path 		= require('path'),
+	exec 		= require('child_process').exec,
+	spawnSync 	= require('child_process').spawnSync;
 
-app.get('/result/:id', function (req, res) {
+var app = express();
+
+var start = require('./start.js');
+var results = [];
+
+app.use(bodyParser.urlencoded({extended: true}));
+app.use('/web', express.static(path.join(__dirname, './web')));
+app.use('/images', express.static(path.join(__dirname, './../images')));
+
+app.get('/', function (req, res) {
+	fs.readFile('./web/html/index.html', function(err, data){
+		if(err) {
+			res.writeHead(404);
+			res.write("Page not found")
+		}
+		else {
+			res.writeHead(200, {'Content-Type': 'text/html'});
+			res.write(data);
+		}
+		res.end();
+	});
+});
+
+app.post('/convert', function (req, res) {
+	var jobs = req.body.images;
+	console.log("JOBS:", jobs);
+	start.execute(jobs, 1, function (result) {
+		results.push(result);
+	});
+	res.json({"result":true});
+});
+
+app.get('/check', function (req, res) {
+	res.json({"result":results});
+});
+
+app.post('/result/:id', function (req, res) {
+	var result = process.env.HOME + '/workspace/resultsOfSpotPOC/' + req.params.id + "/result.json";
+	fs.readFile(result, function(err, data){
+		if(err) res.json({"error":err});
+		else res.json({"data":JSON.parse(data)});
+	});
+});
+
+app.get('/report/:id', function (req, res) {
 	var result = process.env.HOME + '/workspace/resultsOfSpotPOC/' + req.params.id + "/result.json";
 	fs.readFile(result, function(err, data){
 		if(err) {
@@ -10,10 +57,10 @@ app.get('/result/:id', function (req, res) {
 			res.write("Page not found");
 		}
 		else {
-			var html = '<html><head><title>Job Result</title></head><body>';
-			var success = JSON.parse(data).success.join("").replace(/\n/g, '<br/>');
-			var error = JSON.parse(data).error.join("").replace(/\n/g, '<br/>');
-			html += '<div><b>Result:</b><br/>' + success + '</div><br/><div><b>Errors:</b><br/>' + error + '<br/></div></body></html>';
+			var html = '<html><head><title>Job Result</title><link rel="stylesheet" href="/web/css/style.css"></head><body>';
+			var success = (JSON.parse(data).success.length > 0) ? JSON.parse(data).success.replace(/\n/g, '<br/>') : "";
+			var error = (JSON.parse(data).error.length > 0) ? JSON.parse(data).error.join("").replace(/\n/g, '<br/>') : "";
+			html += '<div id="report"><h2>Report:</h2><div id="success">' + success + '</div><br/><h3>Errors:</h3><div id="error">' + error + '<br/></div></body></html>';
 			res.writeHead(200, {'Content-Type': 'text/html'});
 			res.write(html);
 		}

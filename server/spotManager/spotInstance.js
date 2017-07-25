@@ -53,7 +53,7 @@ var getInstanceId = function (requestId, requestState, callback) {
 }
 
 var getInstanceData = function (instanceId, callback) {
-	console.log("\n=========================================\nGetting instance data of :", instanceId);
+	console.log("\n=========================================\nGetting instance state of :", instanceId);
 	var spotCommand, spotCommandArgs, instanceData, instance;
 	spotCommand = 'aws';
 	spotCommandArgs = ['ec2', 'describe-instances', '--instance-ids', instanceId];
@@ -71,9 +71,9 @@ var getInstanceData = function (instanceId, callback) {
 	if(instance.output[2] || instance.error) {
 		console.log("Error:", (instance.output[2] || instance.error));
 		callback(instance.output[2] || instance.error, null);
-	} else if(instance.status == 0 && instance.signal == null && instance.output[1]) {
+	} else if(instance.status == 0 && instance.signal == null) {
 		instanceData = JSON.parse(instance.output[1])['Reservations'][0]['Instances'][0];
-		console.log("Spot Instance Data:\n", instanceData);
+		console.log("Spot Instance State:\n", instanceData.State.Name);
 		if(instanceData.State.Name == 'pending' || instanceData.State.Name == 'shutting-down') getInstanceData(instanceData.InstanceId, callback);
 		else callback(null, instanceData);
 	}
@@ -81,7 +81,7 @@ var getInstanceData = function (instanceId, callback) {
 
 
 var connectInstance = function (instanceData, keyName, result, callback) {
-	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated' || instance_terminated[instanceData.InstanceId]) {
+	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated' || instance_terminated || completed) {
 		console.log("Instance Terminated, couldn't connect to get result.");
 		result.success.push("\nInstance Terminated\n");
 		result.error.push("\nInstance Terminated\n");
@@ -115,11 +115,13 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 				result.success = [connectData];
 			}
 
-			if(connect.status == 0 && connect.signal == null && connect.output[1]) {
+			if(connect.status == 0 && connect.signal == null) {
 				if(connect.output[1].includes('Open this link to download logFile.')) {
 					result.success = [connect.output[1]];
 					return callback(result, instanceData);
-				}else connectInstance(instanceData, keyName, result, callback);
+				} else if(connect.output[0] != null && connect.output[0].includes('Connection refused')) {
+					return callback(result, instanceData);
+				} else connectInstance(instanceData, keyName, result, callback);
 			} else connectInstance(instanceData, keyName, result, callback);
 		} else connectInstance(instanceData, keyName, result, callback);
 	}, 2000);
@@ -209,6 +211,7 @@ var terminateInstance = function (instanceId, callback) {
 	console.log(command+'\n=========================================\n');
 
 	exec(command, function (termErr, stdout, stderr) {
+		console.log(termErr, stdout, stderr);
 		if(termErr || stderr || !stdout) return callback(termErr, null);
 		var terminateData = JSON.parse(stdout)["TerminatingInstances"][0]["CurrentState"]["Name"];
 		callback(null, terminateData);
@@ -217,10 +220,11 @@ var terminateInstance = function (instanceId, callback) {
 
 var cancelRequest = function (spotRequestId, callback) {
 	console.log("\n=========================================\nCancelling spot instance request....");
-	var command = 'aws cancel-spot-instance-requests --spot-instance-request-ids ' + spotRequestId;
+	var command = 'aws ec2 cancel-spot-instance-requests --spot-instance-request-ids ' + spotRequestId;
 	console.log(command+'\n=========================================\n');
 	
 	exec(command, function (cancelErr, stdout, stderr) {
+		console.log(cancelErr, stdout, stderr);
 		if(cancelErr || stderr || !stdout) return callback(true, null);
 		var cancelData = JSON.parse(stdout)["CancelledSpotInstanceRequests"][0]["State"];
 		if(cancelData == 'cancelled') callback(null, true);

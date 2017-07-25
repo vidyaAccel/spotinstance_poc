@@ -12,6 +12,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 	result['success'] = [];
 	result['error'] = [];
 	var resultFilePath, resultFile;
+	console.log("resultFile:", resultPath.length);
 	if(resultPath.length == 0) {
 		var date = new Date();
 		var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
@@ -26,8 +27,6 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 			if(!err || data) result = JSON.parse(data); 
 		});
 	}
-
-	resultFile = resultPath[0];
 	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
 		if(error || !bidPrice) {
 			console.log("Error in getting Bid Price:", error);
@@ -73,7 +72,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 										spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result, instanceData) {
 											fs.writeFile(resultFile, JSON.stringify(result), function (err) {
 												if(err) console.log("Couldn't write result file at ", resultFile);
-												completed[instanceData.InstanceId] = true;
+												completed = true;
 											});
 										});
 									}, 120000);

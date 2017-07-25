@@ -81,7 +81,7 @@ var getInstanceData = function (instanceId, callback) {
 
 
 var connectInstance = function (instanceData, keyName, result, callback) {
-	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated' || instance_terminated || completed) {
+	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated' || instance_terminated[instanceData.InstanceId] == true) {
 		console.log("Instance Terminated, couldn't connect to get result.");
 		result.success.push("\nInstance Terminated\n");
 		result.error.push("\nInstance Terminated\n");

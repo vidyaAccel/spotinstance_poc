@@ -72,7 +72,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 										spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, result, function (result, instanceData) {
 											fs.writeFile(resultFile, JSON.stringify(result), function (err) {
 												if(err) console.log("Couldn't write result file at ", resultFile);
-												completed = true;
+												completed[instanceData.InstanceId] = true;
 											});
 										});
 									}, 120000);
@@ -88,22 +88,24 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 
 var checkTermination = function (instanceData, callback) {
 	console.log('\n=========================================\nChecking terminate request from AWS\n=========================================\n')
-	if(terminate == false) {
-		if(instanceData.State.Name == 'running') {
-			var timeOut = {timeout: 5000,killSignal: 'SIGKILL'}
-			exec('if curl -s http://'+instanceData.PublicIpAddress+'/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then echo terminated; fi', timeOut, function (tErr, tstdout, tstderr) {
-				if(tstdout == "terminated") {
-					return callback("Termination signal");
-				}
-				callback("Running");
-			});
-		} else if (instanceData.State.Name == 'terminated') {
-			callback("Terminated");
+	if(instance_terminated[instanceData.InstanceId] == false) {	
+		if(terminate == false) {
+			if(instanceData.State.Name == 'running') {
+				var timeOut = {timeout: 5000,killSignal: 'SIGKILL'}
+				exec('if curl -s http://'+instanceData.PublicIpAddress+'/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then echo terminated; fi', timeOut, function (tErr, tstdout, tstderr) {
+					if(tstdout == "terminated") {
+						return callback("Termination signal");
+					}
+					callback("Running");
+				});
+			} else if (instanceData.State.Name == 'terminated') {
+				callback("Terminated");
+			}
+		} else {
+			if (instanceData.State.Name == 'terminated') return callback("Terminated");
+			callback("Terminating by User");
 		}
-	} else {
-		if (instanceData.State.Name == 'terminated') return callback("Terminated");
-		callback("Terminating by User");
-	}
+	} else callback('Terminated');
 }
 
 var terminateAndCancel = function (instanceId, spotRquestType, callback) {

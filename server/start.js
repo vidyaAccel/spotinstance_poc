@@ -71,20 +71,23 @@ var startJobs = function (jobArray, resultPath, callback) {
 		if(error) return;
 		console.log("jobs:", jobName, "\naws accessKey:", accessKey, "\naws secretKey:", secretKey);
 		spotManager.getSpotInstance(jobName, accessKey, secretKey, inputData, resultPath, function (err, instanceData, resultFilePath, terminate) {
-			if(err || !instanceData) console.log({error:err || 'Jobs Not Started'});
+			if(err || !instanceData) {
+				console.log({error:err || 'Jobs Not Started'});
+				callback("not started");
 			else {
 				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				if(!resultPath.includes(resultFilePath)) resultPath.push(resultFilePath);
 				console.log("start.js final output:----------------------->\n", instance, "\n", resultPath, "\n", terminate);
+				console.log("\n=========================================\nJob in Spot Instance Running.......\n=========================================\n");
+			
+				checkSpotInstanceStatus(terminate, function (termSig) {
+					if(termSig == 'Terminated') {
+						instance_terminated[instance.InstanceId] = true;
+						callback(termSig);
+					}
+				});
 			}
-			console.log("\n=========================================\nJob in Spot Instance Running.......\n=========================================\n");
-			checkSpotInstanceStatus(terminate, function (termSig) {
-				if(termSig == 'Terminated') {
-					instance_terminated[instance.InstanceId] = true;
-					callback(termSig);
-				}
-			});
 		});
 	});
 }

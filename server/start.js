@@ -74,7 +74,7 @@ var startJobs = function (jobArray, resultPath, callback) {
 			if(err || !instanceData) {
 				console.log({error:err || 'Jobs Not Started'});
 				callback("not started");
-			else {
+			} else {
 				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				if(!resultPath.includes(resultFilePath)) resultPath.push(resultFilePath);

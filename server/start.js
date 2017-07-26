@@ -77,7 +77,7 @@ var startJobs = function (jobArray, resultPath, callback) {
 				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				if(!resultPath.includes(resultFilePath)) resultPath.push(resultFilePath);
-
+				console.log("\n=========================================\nGot instance Data:"+instance+'\n=========================================\n');
 				console.log("\n=========================================\nLaunching Spot Instance.......\nMonitoring Jobs..."+jobArray+"\n=========================================\n");
 				
 				checkSpotInstanceStatus(terminate, function (termSig) {

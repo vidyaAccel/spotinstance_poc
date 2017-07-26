@@ -8,7 +8,7 @@ var spotInstance 	= require("./spotInstance.js");
 var terminate = false;
 var reRequest = false;
 var getSpotInstance = function (jobName, accessKey, secretKey, inputData, resultPath, callback) {
-	var result, reResult = {};
+	var result = reResult = {};
 	reResult['success'] = [];
 	reResult['error'] = [];
 	var resultFilePath, resultFile;

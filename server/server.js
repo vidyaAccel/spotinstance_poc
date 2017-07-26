@@ -56,10 +56,15 @@ app.get('/report/:id', function (req, res) {
 			res.write("Page not found");
 		}
 		else {
+			data = JSON.parse(data);
+			console.log(data);
 			var html = '<html><head><title>Job Result</title><link rel="stylesheet" href="/web/css/style.css"></head><body>';
-			var success = (JSON.parse(data).success.length > 0) ? JSON.parse(data).success.replace(/\n/g, '<br/>') : "";
-			var error = (JSON.parse(data).error.length > 0) ? JSON.parse(data).error.join("").replace(/\n/g, '<br/>') : "";
-			html += '<div id="report"><h2>Report:</h2><div id="success">' + success + '</div><br/><h3>Errors:</h3><div id="error">' + error + '<br/></div></body></html>';
+			var success = error = '';
+			data.forEach(function (report) {
+				success += report.success;
+				error += report.error.join("");
+			});
+			html += '<div id="report"><h2>Report:</h2><div id="success">' + success.replace(/\n/g, '<br/>') + '</div><br/><h3>Errors:</h3><div id="error">' + error.replace(/\n/g, '<br/>') + '<br/></div></body></html>';
 			res.writeHead(200, {'Content-Type': 'text/html'});
 			res.write(html);
 		}

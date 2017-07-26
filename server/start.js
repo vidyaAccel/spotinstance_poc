@@ -77,7 +77,7 @@ var startJobs = function (jobArray, resultPath, callback) {
 				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				if(!resultPath.includes(resultFilePath)) resultPath.push(resultFilePath);
-				console.log("\n=========================================\nGot instance Data:"+instance+'\n=========================================\n');
+				console.log("\n=========================================\nGot instance Data:"+JSON.stringify(instance)+'\n=========================================\n');
 				console.log("\n=========================================\nLaunching Spot Instance.......\nMonitoring Jobs..."+jobArray+"\n=========================================\n");
 				
 				checkSpotInstanceStatus(terminate, function (termSig) {
@@ -119,7 +119,7 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 }
 
 var sqsMonitor = function(jobArray, waitTime, callback) {
-	var timeout = setTimeout(function () {
+	setTimeout(function () {
 		console.log("\n=========================================\ninside Qmonitor\n=========================================\n");
 	  	var jobFinished = [];
 	  	var jobPending = [];
@@ -129,7 +129,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	    	WaitTimeSeconds: 3 // seconds - how long should we wait for a message?
 	 	}, function(err, data) {
 	      	if(data.Messages) {
-	      		console.log("\n=========================================\nreceived a Message", err, data+'\n=========================================\n');
+	      		console.log("\n=========================================\nreceived a Message", err, JSON.stringify(data)+'\n=========================================\n');
 	       		common.each(data.Messages, function(message, job_callback) {
 	       			console.log("inside each message");
 	          		var jobname = JSON.parse(message.Body).jobname;
@@ -175,18 +175,19 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 										} else {
 											instance_terminated[instanceData.InstanceId] = true;
 											completed[instanceData.InstanceId] = false;
-											clearTimeout(timeout);
 											console.log("\n=========================================\nSpot Instance Terminated in between Job Running. Jobs Finished:", finishedJobs, "\nPending Jobs:", jobPending, "\nStarting Pending Jobs in new spot instance..\n=========================================\n");
-											startJobs(jobPending, resultPath, function (sig) {
-												if(sig == 'not started') console.log("\n=========================================\nJobs Not started due to some error.\n=========================================\n");
-												else console.log("\n=========================================\nPending Job finished. Spot Instance Terminated\n=========================================\n");
-											});
-											sqsMonitor(jobPending, waitTime, callback);
+											setTimeout(function () {	
+												startJobs(jobPending, resultPath, function (sig) {
+													if(sig == 'not started') console.log("\n=========================================\nJobs Not started due to some error.\n=========================================\n");
+													else console.log("\n=========================================\nPending Job finished. Spot Instance Terminated\n=========================================\n");
+												});
+												sqsMonitor(jobPending, waitTime, callback);
+											}, 10000);
 										}
 									});
 								} else {
 									console.log("\n=========================================\nWaiting for Jobs to Complete.", jobPending+'\n=========================================\n');
-									if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to upate....\n=========================================\n");
+									if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to update....\n=========================================\n");
 									sqsMonitor(jobPending, waitTime, callback);
 								}
 							});
@@ -197,18 +198,18 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 			            	//deleteMessage("https://sqs.us-west-2.amazonaws.com/399705315545/tsgpoc", Qmessages, function() {
 				            	spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 				            		instance = instanceData;
-				            		if(instanceErr || instanceData.State.Name == 'terminated') {
+				            		/*if(instanceErr || instanceData.State.Name == 'terminated') {
 				            			instance_terminated[instanceData.InstanceId] = true;
 										console.log("\n=========================================\nSpot Instance Terminated. All Jobs completed.\ncompleted Jobs:", finishedJobs+'\n=========================================\n');
 										getResult(resultPath[0], function (err, result) {
 											finishedJobs.forEach(function (job) {
-												result.success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
+												result[result.length-1].success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
 											});
 											fs.writeFile(resultPath[0], JSON.stringify(result), 'utf8', function (err) {
 												callback("finished", resultPath[0].split("/")[resultPath[0].split("/").length-2]);
 											});
 										});
-									} else {
+									} else {*/
 										console.log("\n=========================================\nAll Jobs completed. Terminating Spot Instance.\ncompleted Jobs:", finishedJobs+'\n=========================================\n');
 										spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
 											if(terminated) {
@@ -216,7 +217,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 												console.log("\n=========================================\nSpot Instance Terminated\n=========================================\n");
 												getResult(resultPath[0], function (err, result) {
 													finishedJobs.forEach(function (job) {
-														result.success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
+														result[result.length-1].success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
 													});
 													fs.writeFile(resultPath[0], JSON.stringify(result), 'utf8', function (err) {
 														callback("finished", resultPath[0].split("/")[resultPath[0].split("/").length-2]);
@@ -226,7 +227,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 												console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
 												getResult(resultPath[0], function (err, result) {
 													finishedJobs.forEach(function (job) {
-														result.success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
+														result[result.length-1].success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
 													});
 													fs.writeFile(resultPath[0], JSON.stringify(result), 'utf8', function (err) {
 														callback("Not Finished", resultPath[0].split("/")[resultPath[0].split("/").length-2]);
@@ -234,7 +235,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 												});
 											}
 										});
-									}
+									//}
 				            	});
 							//});
 						} else sqsMonitor(finishedJobs, waitTime, callback);
@@ -253,7 +254,6 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 								} else {
 									completed[instanceData.InstanceId] = false;
 									instance_terminated[instanceData.InstanceId] = true;
-									clearTimeout(timeout);
 									console.log("\n=========================================\nSpot Instance Terminated in between Job Running. Jobs Finished:", finishedJobs, "\nPending Jobs:", jobPending, "\nStarting Pending Jobs in new spot instance.\n=========================================\n");
 									startJobs(jobPending, resultPath, function (sig) {
 										if(sig == 'not started') console.log("\n=========================================\nJobs Not started due to some error.\n=========================================\n");
@@ -264,7 +264,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 							});
 						} else {
 							console.log("\n=========================================\nWaiting for Jobs to Complete.", jobPending+'\n=========================================\n');
-							if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to updtae....\n=========================================\n");
+							if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to update....\n=========================================\n");
 							sqsMonitor(jobPending, waitTime, callback);
 						}
 					});
@@ -309,7 +309,7 @@ function execute (jobs, time, callback) {
 		});
 
 		sqsMonitor(jobArray, waitTime, function (finished, res) {
-			if(finished == 'finished') console.log("\n=========================================\nQ Monitoring Stopped after All jobs completed[instanceData.InstanceId].\n=========================================\n");
+			if(finished == 'finished') console.log("\n=========================================\nQ Monitoring Stopped after All jobs completed.\n=========================================\n");
 			else console.log("\n=========================================\nSomething went wrong. Q Monitoring Stopped unexpectedly. Please Terminate instance mannually.\n=========================================\n");
 			console.log("\n=========================================\ngo to http://localhost:8081/report/"+res+" to see the result.\n=========================================\n")
 			closeMonitor = true;

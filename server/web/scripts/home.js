@@ -2,6 +2,7 @@ var images = [];
 var count = 0;
 
 $(document).ready(function() {
+	checkStatus();
 	$('img').each(function () {
 		$(this).prop('selected', false);
 	});
@@ -74,16 +75,26 @@ var checkStatus = function() {
 	    dataType: "json",
 	    success: function(data) {
 	      	if(data.result.length <= 0) {
-	      		$("#progress").show();
-	      		setTimeout(function () {
-	      			checkStatus();
-	      		}, 5000);
+	      		if(images.length == 0 && count == 0) {
+					return;
+				} else {
+					$("#progress").show();
+		      		setTimeout(function () {
+		      			checkStatus();
+		      		}, 5000);
+				}
 			} else {
-				images = [];
-				count = 0;
-				$("#progress").hide();
-				$("#result").html('<span style="color:green">All image(s) converted.</span>');
-				$('#showReport').html('<button id="href" onclick="getReport(\''+data.result[0]+'\')">Click here</button>&nbsp;to see full report.');
+				if(images.length == 0 && count == 0) {
+					$("#progress").hide();
+					$("#result").html('<span style="color:green">All image(s) converted.</span>');
+					$('#showReport').html('<button id="href" onclick="getReport(\''+data.result[0]+'\')">Click here</button>&nbsp;to see previous job report.');
+				} else {
+					images = [];
+					count = 0;
+					$("#progress").hide();
+					$("#result").html('<span style="color:green">All image(s) converted.</span>');
+					$('#showReport').html('<button id="href" onclick="getReport(\''+data.result[0]+'\')">Click here</button>&nbsp;to see full report.');
+				}
 			}
 		}
   	});
@@ -94,11 +105,14 @@ var getReport = function(result) {
 		console.log(res);
 		if(res.error) $("#result").html('<span style="color:red">Couldn\'t get report.</span>');
 		else {
-			var success = (res.data.success.length > 0) ? res.data.success.replace(/\n/g, '<br/>') : "";
-			var error = (res.data.error.length > 0) ? res.data.error.join("").replace(/\n/g, '<br/>') : "";
+			var success = error = '';
+			res.data.forEach(function (report) {
+				success += report.success;
+				error += report.error.join("");
+			});
 			$('#showReport').hide();
-			$('#success').html(success);
-			$('#error').html(error);
+			$('#success').html(success.replace(/\n/g, '<br/>'));
+			$('#error').html(error.replace(/\n/g, '<br/>'));
 			$('#report').show();
 		}
 	});

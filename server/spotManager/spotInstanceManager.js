@@ -8,14 +8,11 @@ var spotInstance 	= require("./spotInstance.js");
 var terminate = false;
 var reRequest = false;
 var getSpotInstance = function (jobName, accessKey, secretKey, inputData, resultPath, callback) {
-	var result = reResult = {};
+	var result = [], reResult = {};
 	reResult['success'] = [];
 	reResult['error'] = [];
 	var resultFilePath, resultFile;
-	console.log("resultFile:", resultPath.length);
 	if(resultPath.length == 0) {
-		result['success'] = [];
-		result['error'] = [];
 		var date = new Date();
 		var uniqueID = date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear() + '_' + date.getHours() + '-' + date.getMinutes() + '-' + date.getSeconds();
 		resultFilePath = process.env.HOME + '/workspace/resultsOfSpotPOC/' + uniqueID;
@@ -27,12 +24,12 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 		resultFilePath = temp.join('/');
 		resultFile = resultPath[0];
 		fs.readFile(resultFile, 'utf8', function (err, data) {
-			if(!err || data) result = JSON.parse(data); 
+			if(!err || data) result = result.concat(JSON.parse(data)); 
 		});
 	}
 	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
 		if(error || !bidPrice) {
-			console.log("Error in getting Bid Price:", error);
+			console.log("Error in getting Spot Price:", error);
 			return callback(error, null, resultFile, "Not Started");
 		}
 		console.log("\n=========================================\nLatest Spot Price is:", spotPrice);
@@ -66,13 +63,12 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 								console.log("Instance Terminated");
 								callback(null, instanceData, resultFile, "Terminated");
 							} else if (instanceData.State.Name == 'running' || instanceData.State.Name == 'pending') {
+								completed[instanceData.InstanceId] = false;
 								callback(null, instanceData, resultFile, "Running");
-								mkdirp(resultFilePath,function(){
-									console.log("\n=========================================\nLaunching Spot Instance.......\nMonitoring Jobs..."+jobName.split('#')+"\n=========================================\n");
+								mkdirp(resultFilePath,function() {
 									setTimeout(function () {
 										spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, reResult, function (res, instanceData) {
-											result.success = result.success.concat(res.success);
-											result.error = result.error.concat(res.error);
+											result.push(res);
 											fs.writeFile(resultFile, JSON.stringify(result), function (err) {
 												if(err) console.log("Couldn't write result file at ", resultFile);
 												completed[instanceData.InstanceId] = true;

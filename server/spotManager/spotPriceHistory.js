@@ -24,7 +24,8 @@ var getBidPrice = function (inputData, callback) {
 			spotPrice = spotPrices[0].SpotPrice;
 			bidPrice = increase(spotPrice, inputData.Increment);
 			return callback(null, spotPrice, bidPrice);
-		} else return callback(error, null, null);
+		} else if(JSON.stringify(error).includes('timeout')) getBidPrice(inputData, callback);
+		else return callback(error, null, null);
 	});
 }
 

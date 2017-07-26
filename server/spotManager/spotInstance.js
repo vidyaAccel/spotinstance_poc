@@ -101,6 +101,8 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			    	'pipe', // Direct child's stdout to an array output at index 1
 			    	'pipe' // Direct child's stderr to an array output at index 2
 			  	],
+			  	timeout: 10000,
+			  	killSignal: 'SIGKILL',
 			  	encoding: 'UTF-8'
 			});
 
@@ -112,10 +114,11 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			if(connect.output[1]) {
 				connectData = connect.output[1];
 				result.success = [connectData];
+				console.log('\n=========================================\nLogs of job running in spot Instance:\n'+connectData+'\n=========================================\n');
 			}
 
 			if(connect.status == 0 && connect.signal == null) {
-				if(connect.output[1].includes('Open this link to download logFile.')) {
+				if(connect.output[1].includes('Completed All Jobs')) {
 					result.success = [connect.output[1]];
 					console.log('\n=========================================\nLogs of job running in spot Instance'+result.success+'\nError of running jobs in spot instance:\n'+result.error+'\n=========================================\n');
 					return callback(result, instanceData);
@@ -123,7 +126,17 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 					console.log('\n=========================================\nLogs of job running in spot Instance'+result.success+'\nError of running jobs in spot instance:\n'+result.error+'\n=========================================\n');
 					return callback(result, instanceData);
 				} else connectInstance(instanceData, keyName, result, callback);
-			} else connectInstance(instanceData, keyName, result, callback);
+			} else {
+				if(connect.signal == 'SIGKILL') {
+					console.log("Instance Terminated, couldn't connect to get result.");
+					result.success.push("\nInstance Terminated\n");
+					if(!result.error.includes(connect.error || connect.output[2])) {
+						result.error.push((JSON.stringify(JSON.stringify(connect.error)) || JSON.stringify(connect.output[2])));
+						result.error.push("\nInstance Terminated\n");
+					}
+					return callback(result, instanceData);
+				} else connectInstance(instanceData, keyName, result, callback);
+			}
 		} else connectInstance(instanceData, keyName, result, callback);
 	}, 2000);
 }

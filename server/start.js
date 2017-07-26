@@ -69,7 +69,6 @@ var startJobs = function (jobArray, resultPath, callback) {
 	var jobName = jobArray.join("#");
 	getCredential(function (error, accessKey, secretKey) {
 		if(error) return;
-		console.log("jobs:", jobName, "\naws accessKey:", accessKey, "\naws secretKey:", secretKey);
 		spotManager.getSpotInstance(jobName, accessKey, secretKey, inputData, resultPath, function (err, instanceData, resultFilePath, terminate) {
 			if(err || !instanceData) {
 				console.log({error:err || 'Jobs Not Started'});
@@ -78,9 +77,9 @@ var startJobs = function (jobArray, resultPath, callback) {
 				instance_terminated[instanceData.InstanceId] = false;
 				instance = instanceData;
 				if(!resultPath.includes(resultFilePath)) resultPath.push(resultFilePath);
-				console.log("start.js final output:----------------------->\n", instance, "\n", resultPath, "\n", terminate);
-				console.log("\n=========================================\nJob in Spot Instance Running.......\n=========================================\n");
-			
+
+				console.log("\n=========================================\nLaunching Spot Instance.......\nMonitoring Jobs..."+jobArray+"\n=========================================\n");
+				
 				checkSpotInstanceStatus(terminate, function (termSig) {
 					if(termSig == 'Terminated') {
 						instance_terminated[instance.InstanceId] = true;
@@ -120,7 +119,7 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 }
 
 var sqsMonitor = function(jobArray, waitTime, callback) {
-	setTimeout(function () {
+	var timeout = setTimeout(function () {
 		console.log("\n=========================================\ninside Qmonitor\n=========================================\n");
 	  	var jobFinished = [];
 	  	var jobPending = [];
@@ -136,7 +135,6 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	          		var jobname = JSON.parse(message.Body).jobname;
 	          		var id = message.MessageId;
 	          		var handler = message.ReceiptHandle
-	          		console.log('Recieved messages:', Qmessages);
 	          		var Qmessage = JSON.stringify({"Id": id, "ReceiptHandle": handler});
 	          		if(!Qmessages.includes(Qmessage)) Qmessages.push(Qmessage);
 	          		console.log('\n=========================================\n');
@@ -164,31 +162,35 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 	        	}, function(err) {
 	        		console.log("\n=========================================\nTotal Jobs:", jobArray);
 	        		console.log("Pending jobs:", jobPending);
-	        		console.log("Finished jobs", jobFinished+'\n=========================================\n');
+	        		console.log("Finished jobs", finishedJobs+'\n=========================================\n');
 	        		if(jobPending.length > 0) {
-		            	if(instance_terminated[instance.InstanceId] == false) {
+		            	if(instance && instance_terminated[instance.InstanceId] == false) {
 				      		spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 								instance = instanceData;
 								if(instanceData.State.Name == 'terminated') {
 									spotInstance.cancelRequest(instanceData.SpotInstanceRequestId, function (error, cancel) {
 										if(error || !cancel) {
-											console.log("\n=========================================\nCouldn't Cancel Spot Request. Please Try Manually in AWS Console!!\n=========================================\n");
-											sqsMonitor(jobPending, 0.5, callback);
+											console.log("Couldn't Cancel Spot Request. Please Try Manually in AWS Console!!");
+											sqsMonitor(jobPending, waitTime, callback);
 										} else {
 											instance_terminated[instanceData.InstanceId] = true;
 											completed[instanceData.InstanceId] = false;
-											console.log("\n=========================================\nSpot Instance Terminated in between Job Running. Jobs Finished:", finishedJobs, "\nPending Jobs:", jobPending, "\nStarted Pending Jobs.\n=========================================\n");
-											startJobs(jobPending, resultPath, function () { console.log("\n=========================================\nPending Job finished. Spot Instance Terminated\n=========================================\n"); });
-											sqsMonitor(jobPending, 1.5, callback);
+											clearTimeout(timeout);
+											console.log("\n=========================================\nSpot Instance Terminated in between Job Running. Jobs Finished:", finishedJobs, "\nPending Jobs:", jobPending, "\nStarting Pending Jobs in new spot instance..\n=========================================\n");
+											startJobs(jobPending, resultPath, function (sig) {
+												if(sig == 'not started') console.log("\n=========================================\nJobs Not started due to some error.\n=========================================\n");
+												else console.log("\n=========================================\nPending Job finished. Spot Instance Terminated\n=========================================\n");
+											});
+											sqsMonitor(jobPending, waitTime, callback);
 										}
 									});
 								} else {
 									console.log("\n=========================================\nWaiting for Jobs to Complete.", jobPending+'\n=========================================\n');
-									if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to upload....\n=========================================\n");
-									sqsMonitor(jobPending, 0.5, callback);
+									if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to upate....\n=========================================\n");
+									sqsMonitor(jobPending, waitTime, callback);
 								}
 							});
-						} else sqsMonitor(jobPending, 0.5, callback);
+						} else sqsMonitor(jobPending, waitTime, callback);
 		            } else if(jobFinished.length == jobArray.length) {
 		            	if(completed[instance.InstanceId]) {
 		            		completed[instance.InstanceId] = false;
@@ -197,7 +199,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 				            		instance = instanceData;
 				            		if(instanceErr || instanceData.State.Name == 'terminated') {
 				            			instance_terminated[instanceData.InstanceId] = true;
-										console.log("\n=========================================\nSpot Instance Terminated. All Jobs completed[instanceData.InstanceId].\ncompleted[instanceData.InstanceId] Jobs:", finishedJobs+'\n=========================================\n');
+										console.log("\n=========================================\nSpot Instance Terminated. All Jobs completed.\ncompleted Jobs:", finishedJobs+'\n=========================================\n');
 										getResult(resultPath[0], function (err, result) {
 											finishedJobs.forEach(function (job) {
 												result.success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
@@ -207,7 +209,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 											});
 										});
 									} else {
-										console.log("\n=========================================\nAll Jobs completed[instanceData.InstanceId]. Terminating Spot Instance.\ncompleted[instanceData.InstanceId] Jobs:", finishedJobs+'\n=========================================\n');
+										console.log("\n=========================================\nAll Jobs completed. Terminating Spot Instance.\ncompleted Jobs:", finishedJobs+'\n=========================================\n');
 										spotManager.terminateAndCancel(instance.InstanceId, inputData.RequestType, function (terminated) {
 											if(terminated) {
 												instance_terminated[instanceData.InstanceId] = true;
@@ -221,7 +223,7 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 													});
 												});
 											} else {
-												console.log("\n=========================================\nCouldn't Terminate Spot Instance. Please Try Manually in AWS Console!!\n=========================================\n");
+												console.log("Couldn't Terminate Spot Instance. Please Try Manually in AWS Console!!");
 												getResult(resultPath[0], function (err, result) {
 													finishedJobs.forEach(function (job) {
 														result.success += '<a href="https://tsgpoc.s3-us-west-2.amazonaws.com/'+job+'.gif">Open this link to download '+job+'.gif</a><br/>';
@@ -235,34 +237,38 @@ var sqsMonitor = function(jobArray, waitTime, callback) {
 									}
 				            	});
 							//});
-						} else sqsMonitor(finishedJobs, 0.5, callback);
+						} else sqsMonitor(finishedJobs, waitTime, callback);
 		            }
 	        	});
 	      	} else {
 	      		jobPending = jobArray;
-	      		if(instance_terminated[instance.InstanceId] == false) {
+	      		if(instance && instance_terminated[instance.InstanceId] == false) {
 		      		spotInstance.getInstanceData(instance.InstanceId, function (instanceErr, instanceData) {
 						instance = instanceData;
 						if(instanceData.State.Name == 'terminated') {
 							spotInstance.cancelRequest(instanceData.SpotInstanceRequestId, function (error, cancel) {
 								if(error || !cancel) {
-									console.log("\n=========================================\nCouldn't Cancel Spot Request. Please Try Manually in AWS Console!!\n=========================================\n");
-									sqsMonitor(jobPending, 0.5, callback);
+									console.log("Couldn't Cancel Spot Request. Please Try Manually in AWS Console!!");
+									sqsMonitor(jobPending, waitTime, callback);
 								} else {
 									completed[instanceData.InstanceId] = false;
 									instance_terminated[instanceData.InstanceId] = true;
-									console.log("\n=========================================\nSpot Instance Terminated in between Job Running. Jobs Finished:", finishedJobs, "\nPending Jobs:", jobPending, "\nStarted Pending Jobs.\n=========================================\n");
-									startJobs(jobPending, resultPath, function () { console.log("\n=========================================\nPending Job finished. Spot Instance Terminated\n=========================================\n"); });
-									sqsMonitor(jobPending, 1.5, callback);
+									clearTimeout(timeout);
+									console.log("\n=========================================\nSpot Instance Terminated in between Job Running. Jobs Finished:", finishedJobs, "\nPending Jobs:", jobPending, "\nStarting Pending Jobs in new spot instance.\n=========================================\n");
+									startJobs(jobPending, resultPath, function (sig) {
+										if(sig == 'not started') console.log("\n=========================================\nJobs Not started due to some error.\n=========================================\n");
+										else console.log("\n=========================================\nPending Job finished. Spot Instance Terminated\n=========================================\n");
+									});
+									sqsMonitor(jobPending, waitTime, callback);
 								}
 							});
 						} else {
 							console.log("\n=========================================\nWaiting for Jobs to Complete.", jobPending+'\n=========================================\n');
-							if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to upload....\n=========================================\n");
-							sqsMonitor(jobPending, 0.5, callback);
+							if(completed[instanceData.InstanceId]) console.log("\n=========================================\nWaiting for result to updtae....\n=========================================\n");
+							sqsMonitor(jobPending, waitTime, callback);
 						}
 					});
-				} else sqsMonitor(jobPending, 0.5, callback);
+				} else sqsMonitor(jobPending, waitTime, callback);
 	      	}
 	   	});
 	}, waitTime * 60 * 1000);
@@ -298,9 +304,10 @@ function execute (jobs, time, callback) {
 		console.log("Starting Job...", jobArray);
 		runningJob = true;
 		startJobs(jobArray, resultPath, function (termSig) {
-			console.log("\n=========================================\nJobs finished Spot Instance Terminated.\n=========================================\n");
+			if(termSig == 'not started') console.log("\n=========================================\nJobs Not started due to some error.\n=========================================\n");
+			else console.log("\n=========================================\nJobs finished Spot Instance Terminated.\n=========================================\n");
 		});
-		console.log("Job Started.Executing...\nMonitoring Jobs....", jobArray+'\n=========================================\n');
+
 		sqsMonitor(jobArray, waitTime, function (finished, res) {
 			if(finished == 'finished') console.log("\n=========================================\nQ Monitoring Stopped after All jobs completed[instanceData.InstanceId].\n=========================================\n");
 			else console.log("\n=========================================\nSomething went wrong. Q Monitoring Stopped unexpectedly. Please Terminate instance mannually.\n=========================================\n");

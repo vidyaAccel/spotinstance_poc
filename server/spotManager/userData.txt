@@ -1,20 +1,21 @@
 #!/bin/sh -x
 logfile=/home/ubuntu/user-data.log
-echo 'test' | tee -a "$logfile"
-sudo apt-get -y update  | tee -a "$logfile"
+sudo apt-get -y update
 sudo apt-get -y install \
     apt-transport-https \
     ca-certificates \
     curl \
-    software-properties-common  | tee -a "$logfile"
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -  | tee -a "$logfile"
-sudo apt-key fingerprint 0EBFCD88  | tee -a "$logfile"
+    software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88
 sudo add-apt-repository \
    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
-   stable"  | tee -a "$logfile"
-sudo apt-get -y update  | tee -a "$logfile"
-sudo apt-get install -y docker-ce  | tee -a "$logfile"
-sudo service docker start  | tee -a "$logfile"
-sudo docker login -u spotpoc -p spotinstance123  | tee -a "$logfile"
+   stable"
+sudo apt-get -y update
+sudo apt-get install -y docker-ce
+sudo service docker start
+echo 'Running Docker...' | tee -a "$logfile"
+sudo docker login -u spotpoc -p spotinstance123
+echo 'Getting Docker Container...' | tee -a "$logfile"
 sudo docker pull spotpoc/poc:v30  | tee -a "$logfile"

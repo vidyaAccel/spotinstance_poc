@@ -30,7 +30,6 @@ app.get('/', function (req, res) {
 
 app.post('/convert', function (req, res) {
 	var jobs = req.body.images;
-	console.log("JOBS:", jobs);
 	start.execute(jobs, 1, function (result) {
 		results.push(result);
 	});

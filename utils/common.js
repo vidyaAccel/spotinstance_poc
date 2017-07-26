@@ -2,9 +2,7 @@ var _  = require('./underscore');
 var exec = require('child_process').exec;
 
 var each = function(collection, fn, finalCallback) {
-	console.log(collection);
   var keys = _.isArray(collection) ? _.range(collection.length) : _.keys(collection);
-  console.log(keys);
   var errs = [];
 
   var i = 0;

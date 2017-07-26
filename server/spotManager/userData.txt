@@ -15,7 +15,7 @@ sudo add-apt-repository \
 sudo apt-get -y update
 sudo apt-get install -y docker-ce
 sudo service docker start
-echo 'Running Docker...' | tee -a "$logfile"
+echo '['$(date -u)'] Running Docker...' | tee -a "$logfile"
 sudo docker login -u spotpoc -p spotinstance123
-echo 'Getting Docker Container...' | tee -a "$logfile"
+echo '['$(date -u)'] Getting Docker Container...' | tee -a "$logfile"
 sudo docker pull spotpoc/poc:v30  | tee -a "$logfile"

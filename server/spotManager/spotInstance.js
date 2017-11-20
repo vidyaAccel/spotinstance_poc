@@ -3,7 +3,7 @@ var spawn = require('child_process').spawn;
 var spawnSync = require('child_process').spawnSync;
 
 var requestSpotInstance = function (inputData, callback) {
-	console.log("\n=========================================\nMaking Request For a Spot Instance...");
+	console.log("Making Request For a Spot Instance...");
 
 	var spotCommand, specification, requestId, requestState;
 
@@ -11,7 +11,7 @@ var requestSpotInstance = function (inputData, callback) {
 
 	spotCommand = "aws ec2 request-spot-instances --spot-price " + inputData.SpotPrice + " --instance-count " + inputData.InstanceCount + " --type " + inputData.RequestType + " --launch-specification " + specification;
 
-	console.log(spotCommand+'\n=========================================\n');
+	console.log(spotCommand);
 	exec(spotCommand, function (reqErr, stdout, stderr) {
 		if(reqErr || stderr || !stdout) return callback(reqErr, null, null);
 		var requestData = JSON.parse(stdout)['SpotInstanceRequests'][0];
@@ -23,13 +23,13 @@ var requestSpotInstance = function (inputData, callback) {
 }
 
 var getInstanceId = function (requestId, requestState, callback) {
-	console.log("\n=========================================\nWaiting for fulfillment of spot instance request.....\n=========================================\n");
+	console.log("Waiting for fulfillment of spot instance request.....");
 	var requestState = requestState;
 	var requestData;
 	var getInstanceid = function (id) {
 		var spotCommand = 'aws ec2 describe-spot-instance-requests --spot-instance-request-ids ' + id;
 		
-		console.log('\n=========================================\n'+spotCommand+'\n=========================================\n');
+		console.log(''+spotCommand);
 		exec(spotCommand, function (reqErr, stdout, stderr) {
 			if(reqErr || stderr || !stdout) return callback(reqErr, null);
 			requestData = JSON.parse(stdout)['SpotInstanceRequests'][0];
@@ -42,7 +42,7 @@ var getInstanceId = function (requestId, requestState, callback) {
 		} else if(requestState == 'active') {
 			if(requestData.Status.Code == 'fulfilled') {
 				var instanceId = requestData.InstanceId;
-				console.log("\n=========================================\nspot instance request fulfilled.....\nspot instance id:", instanceId+'\n=========================================\n');
+				console.log("spot instance request fulfilled.....\nspot instance id:", instanceId);
 				return callback(null, instanceId)
 			}
 		} else if(requestData.State == 'closed') {
@@ -53,12 +53,12 @@ var getInstanceId = function (requestId, requestState, callback) {
 }
 
 var getInstanceData = function (instanceId, callback) {
-	console.log("\n=========================================\nGetting instance state of :", instanceId);
+	console.log("Getting instance state of :", instanceId);
 	var spotCommand, spotCommandArgs, instanceData, instance;
 	spotCommand = 'aws';
 	spotCommandArgs = ['ec2', 'describe-instances', '--instance-ids', instanceId];
 
-	console.log(spotCommand + " " + spotCommandArgs.join(" ") +'\n=========================================\n');
+	console.log(spotCommand + " " + spotCommandArgs.join(" ") );
 	instance = spawnSync(spotCommand, spotCommandArgs, { maxBuffer: 200*1024*1024,
 		stdio: [
 	    	0, // Doesn't use parent's stdin for child
@@ -107,33 +107,31 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			});
 
 			if(connect.error || connect.output[2]) {
-				if(!result.error.includes(connect.error || connect.output[2])) {
+				if(connect.signal == 'SIGKILL') result.error.push((JSON.stringify(JSON.stringify(connect.error)) || JSON.stringify(connect.output[2])));
+				else if(!result.error.includes(connect.error || connect.output[2])) {
 					result.error.push((connect.error || connect.output[2]));
 				}
 			}
 			if(connect.output[1]) {
 				connectData = connect.output[1];
 				result.success = [connectData];
-				console.log('\n=========================================\nLogs of job running in spot Instance:\n'+connectData+'\n=========================================\n');
+				console.log('Logs of job running in spot Instance:\n'+connectData);
 			}
 
 			if(connect.status == 0 && connect.signal == null) {
 				if(connect.output[1].includes('Completed All Jobs')) {
 					result.success = [connect.output[1]];
-					console.log('\n=========================================\nLogs of job running in spot Instance'+result.success+'\nError of running jobs in spot instance:\n'+result.error+'\n=========================================\n');
+					console.log('Logs of job running in spot Instance:\n'+result.success+'\nError of running jobs in spot instance:\n'+result.error);
 					return callback(result, instanceData);
 				} else if(connect.output[0] != null && connect.output[0].includes('Connection refused')) {
-					console.log('\n=========================================\nLogs of job running in spot Instance'+result.success+'\nError of running jobs in spot instance:\n'+result.error+'\n=========================================\n');
+					console.log('Logs of job running in spot Instance:\n'+result.success+'\nError of running jobs in spot instance:\n'+result.error);
 					return callback(result, instanceData);
 				} else connectInstance(instanceData, keyName, result, callback);
 			} else {
 				if(connect.signal == 'SIGKILL') {
 					console.log("Instance Terminated, couldn't connect to get result.");
 					result.success.push("\nInstance Terminated\n");
-					if(!result.error.includes(connect.error || connect.output[2])) {
-						result.error.push((JSON.stringify(JSON.stringify(connect.error)) || JSON.stringify(connect.output[2])));
-						result.error.push("\nInstance Terminated\n");
-					}
+					result.error.push("\nInstance Terminated\n");
 					return callback(result, instanceData);
 				} else connectInstance(instanceData, keyName, result, callback);
 			}
@@ -142,9 +140,9 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 }
 
 var terminateInstance = function (instanceId, callback) {
-	console.log("\n=========================================\nTerminating instance....");
+	console.log("Terminating instance....");
 	var command = 'aws ec2 terminate-instances --instance-ids ' + instanceId;
-	console.log(command+'\n=========================================\n');
+	console.log(command);
 
 	exec(command, function (termErr, stdout, stderr) {
 		if(termErr || stderr || !stdout) return callback(termErr, null);
@@ -154,9 +152,9 @@ var terminateInstance = function (instanceId, callback) {
 }
 
 var cancelRequest = function (spotRequestId, callback) {
-	console.log("\n=========================================\nCancelling spot instance request....");
+	console.log("Cancelling spot instance request....");
 	var command = 'aws ec2 cancel-spot-instance-requests --spot-instance-request-ids ' + spotRequestId;
-	console.log(command+'\n=========================================\n');
+	console.log(command);
 	
 	exec(command, function (cancelErr, stdout, stderr) {
 		if(cancelErr || stderr || !stdout) return callback(true, null);

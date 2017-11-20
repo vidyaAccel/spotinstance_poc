@@ -87,5 +87,5 @@ var jobConversion = function () {
   	});
 }
 
-console.log("\n["+new Date(Date.now())+"] Got docker container and Runniing Job Agent for jobs "+(input) ? input.split("#") : []);
+console.log("\n["+new Date(Date.now())+"] Got docker container and Runniing Job Agent for jobs ", ((input) ? input.split("#") : []));
 jobConversion();

@@ -57,7 +57,6 @@ app.get('/report/:id', function (req, res) {
 		}
 		else {
 			data = JSON.parse(data);
-			console.log(data);
 			var html = '<html><head><title>Job Result</title><link rel="stylesheet" href="/web/css/style.css"></head><body>';
 			var success = error = '';
 			data.forEach(function (report) {

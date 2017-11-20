@@ -32,8 +32,8 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 			console.log("Error in getting Spot Price:", error);
 			return callback(error, null, resultFile, "Not Started");
 		}
-		console.log("\n=========================================\nLatest Spot Price is:", spotPrice);
-		console.log("Lowest Bid Price will be:", bidPrice+'\n=========================================\n');
+		console.log("Latest Spot Price is:", spotPrice);
+		console.log("Lowest Bid Price will be:", bidPrice);
 
 		inputData.SpotPrice = bidPrice;
 		exec('chmod 400 '+__dirname+'/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
@@ -47,7 +47,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 				region = region.join("");
 				data = 'sudo docker run -e accessKey='+accessKey+' -e secretKey='+secretKey+' -e region='+region+' -e job='+jobName+' -p 4000:80 -i '+inputData.repository+' | tee -a "$logfile\"';
 				userData += data;
-				console.log("\n=========================================\nuserData:\n", userData+'\n=========================================\n');
+				console.log("userData:\n", userData);
 				var base64UserData = new Buffer(userData).toString('base64');
 				inputData.Specification.UserData = base64UserData;
 
@@ -112,7 +112,7 @@ var terminateAndCancel = function (instanceId, spotRquestType, callback) {
 		spotInstance.getInstanceData(instanceId, function (instanceErr, instanceData) {
 			if(!instanceErr || instanceData) {
 				if (instanceData.State.Name == 'terminated') {
-					console.log("\n=========================================\nInstance Terminated by Q monitor after All jobs finished.\n=========================================\n");
+					console.log("Instance Terminated by Q monitor after All jobs finished.");
 					//if(spotRquestType == 'persistent') {
 						spotInstance.cancelRequest(instanceData.SpotInstanceRequestId, function (error, cancel) {
 							terminate = false;
@@ -128,7 +128,7 @@ var terminateAndCancel = function (instanceId, spotRquestType, callback) {
 				} else {
 					spotInstance.terminateInstance(instanceData.InstanceId, function (err, termSig) {
 						if(!err || termSig == 'terminated') {
-							console.log("\n=========================================\nInstance Terminated by Q monitor after All jobs finished.\n=========================================\n");
+							console.log("Instance Terminated by Q monitor after All jobs finished.");
 							//if(spotRquestType == 'persistent') {
 								spotInstance.cancelRequest(instanceData.SpotInstanceRequestId, function (error, cancel) {
 									terminate = false;

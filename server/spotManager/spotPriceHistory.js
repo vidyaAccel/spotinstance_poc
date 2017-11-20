@@ -8,7 +8,7 @@ var increase = function (spotPrice, increment) {
 }
 
 var getBidPrice = function (inputData, callback) {
-	console.log("\n=========================================\nGetting Spot Price History...");
+	console.log("Getting Spot Price History...");
 	var spotCommand, spotPrice, bidPrice;
 	
 	var now = new Date();
@@ -16,7 +16,7 @@ var getBidPrice = function (inputData, callback) {
 
 	spotCommand = 'aws ec2 describe-spot-price-history --availability-zone ' + inputData.Specification.Placement.AvailabilityZone + ' --instance-types ' + inputData.Specification.InstanceType + ' --product-descriptions ' + inputData.Platform + ' --max-items 10 --end-time ' + endTime;
 
-	console.log(spotCommand+'\n=========================================\n');
+	console.log(spotCommand);
 	exec(spotCommand, {maxBuffer: 200 * 1024 * 1024}, function (error, stdout, stderr) {
 		if(!error || stdout) {
 			var spotPrices = JSON.parse(stdout)['SpotPriceHistory'];

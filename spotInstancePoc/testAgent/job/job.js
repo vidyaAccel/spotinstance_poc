@@ -34,7 +34,7 @@ var sqsUpload = function(jobname, callback) {
 
 var s3Upload = function(jobname, callback) {
   var data = { Key: jobname + ".gif",
-  	Body: fs.createReadStream(__dirname + '/images/output/' + jobname + '.gif'),
+  	Body: fs.createReadStream(__dirname + '/../images/output/' + jobname + '.gif'),
   	ACL: 'public-read'
   };
   s3Bucket.putObject(data, function(err, data) {
@@ -55,7 +55,7 @@ var jobConversion = function () {
 		console.log("\n["+new Date(Date.now())+"] Starting Job: " + job);
 		setTimeout(function () {
 			var command = 'mogrify -format gif -path ./output/ -thumbnail 200x200 ' + jobname + '.jpg';
-			exec(command, { cwd: __dirname + '/images/' }, function (error, stdout, stderr) {
+			exec(command, { cwd: __dirname + '/../images/' }, function (error, stdout, stderr) {
 			    if(error || stderr) {
 			  		console.log("\n["+new Date(Date.now())+"] Job not done: "+jobname+"\n["+new Date(Date.now())+"] Error:"+(error || stderr));
 			  		return job_callback();;
@@ -87,5 +87,5 @@ var jobConversion = function () {
   	});
 }
 
-console.log("\n["+new Date(Date.now())+"] Got docker container and Runniing Job Agent for jobs ", ((input) ? input.split("#") : []));
+console.log("\n["+new Date(Date.now())+"] Got docker container and Runniing Jobs ", ((input) ? input.split("#") : []));
 jobConversion();

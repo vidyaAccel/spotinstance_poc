@@ -2,7 +2,7 @@ var fs 				= require('fs');
 var mkdirp			= require('mkdirp');
 var exec 			= require('child_process').exec;
 var spawn 			= require('child_process').spawn;
-//var spotHistory 	= require("./spotPriceHistory.js");
+var spotHistory 	= require("./spotPriceHistory.js");
 var spotInstance 	= require("./scriptAgentUtils/spotInstanceUtils");
 
 var terminate = false;
@@ -27,7 +27,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 			if(!err || data) result = result.concat(JSON.parse(data)); 
 		});
 	}
-	spotInstance.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
+	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
 		if(error || !bidPrice) {
 			console.log("Error in getting Spot Price:", error);
 			return callback(error, null, resultFile, "Not Started");

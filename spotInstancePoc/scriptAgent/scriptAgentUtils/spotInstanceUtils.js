@@ -193,6 +193,28 @@ var getBidPrice = function (inputData, callback) {
 	});
 }
 
+var checkTermination = function (instanceData, callback) {
+	if(instanceData && instance_terminated[instanceData.InstanceId] == false) {	
+		if(terminate == false) {
+			if(instanceData.State.Name == 'running') {
+				var timeOut = {timeout: 5000,killSignal: 'SIGKILL'}
+				exec('if curl -s http://'+instanceData.PublicIpAddress+'/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then echo terminated; fi', timeOut, function (tErr, tstdout, tstderr) {
+					if(tstdout == "terminated") {
+						return callback("Termination signal");
+					}
+					callback("Running");
+				});
+			} else if (instanceData.State.Name == 'terminated') {
+				callback("Terminated");
+			}
+		} else {
+			if (instanceData.State.Name == 'terminated') return callback("Terminated");
+			callback("Terminating by User");
+		}
+	} else callback('Terminated');
+}
+
+exports.checkTermination = checkTermination;
 exports.getBidPrice = getBidPrice;
 exports.requestSpotInstance = requestSpotInstance;
 exports.getInstanceId = getInstanceId;

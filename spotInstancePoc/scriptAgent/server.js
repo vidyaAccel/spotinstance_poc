@@ -7,7 +7,12 @@ var express 	= require('express'),
 
 var app = express();
 
-var start = require('./jobManager/start.js');
+global.completed = {};
+global.instance_terminated = {};
+global.instance = null;
+global.resultPath = [];
+
+var start = require('./jobManager/startJob.js');
 var results = [];
 
 app.use(bodyParser.urlencoded({extended: true}));

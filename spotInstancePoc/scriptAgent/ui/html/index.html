@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	
+	<head>
+		<title>Spot Instance</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/web/css/style.css">
+		<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+		<script src="/web/scripts/home.js"></script>
+	</head>
+	
+	<body class="container-fluid">
+
+		<header class="jumbotron text-center">
+			<h1>PHOTO CONVERTER</h1>
+		</header><br/><br/>
+
+		<section class="container-fluid">
+			<article class="row">
+				<div class="col-sm-3" style="background-colour:white;">coupon1.jpg<br/><img class="img-thumbnail" src="/images/coupon1.jpg" style="width:300px; height:225px;" /></div>
+				<div class="col-sm-3" style="background-colour:white;">coupon2.jpg<br/><img class="img-thumbnail" src="/images/coupon2.jpg" style="width:300px; height:225px;" /></div>
+				<div class="col-sm-3" style="background-colour:white;">coupon3.jpg<br/><img class="img-thumbnail" src="/images/coupon3.jpg" style="width:300px; height:225px;" /></div>
+				<div class="col-sm-3" style="background-colour:white;">coupon4.jpg<br/><img class="img-thumbnail" src="/images/coupon4.jpg" style="width:300px; height:225px;" /></div>
+			</article><br/><br/>
+			<article class="row">
+				<div class="col-sm-3" style="background-colour:white;">newcoupon1.jpg<br/><img class="img-thumbnail" src="/images/newcoupon1.jpg" style="width:300px; height:225px;" /></div>
+				<div class="col-sm-3" style="background-colour:white;">newcoupon2.jpg<br/><img class="img-thumbnail" src="/images/newcoupon2.jpg" style="width:300px; height:225px;" /></div>
+				<div class="col-sm-3" style="background-colour:white;">newcoupon3.jpg<br/><img class="img-thumbnail" src="/images/newcoupon3.jpg" style="width:300px; height:225px;" /></div>
+				<div class="col-sm-3" style="background-colour:white;">newcoupon4.jpg<br/><img class="img-thumbnail" src="/images/newcoupon4.jpg" style="width:300px; height:225px;" /></div>
+			</article><br/><br/>
+			<article>
+				<div id="result"><span style="color:green">Please select image(s).</span></div><br/>
+				<button id="convert" onclick="convert();">Convert</button>&nbsp;&nbsp;&nbsp;<span id="progress"><img src="/web/images/spinner.gif" />Processing...</span>
+			</article><br/>
+		</section><br/>
+		<section id="reportSection" class="container-fluid">
+			<span id='showReport'></span>
+			<div id="report">
+				<h2>Report:</h2>
+				<article id="success"></article><br/>
+				<h3>Error:</h3>
+				<article id="error"></article><br/>
+				<button id='hideReport'>Hide Report</button>
+			</div>
+		</section><br/><br/>
+		<footer class="row img-rounded" style="background-color:aqua;">
+			<h4 class="col-md-12 text-center">SPOT INSTANCE POC DEMO</h4>
+		</footer>
+	
+	</body>
+
+</html>

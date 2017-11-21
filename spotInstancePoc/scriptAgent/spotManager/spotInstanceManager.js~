@@ -2,8 +2,7 @@ var fs 				= require('fs');
 var mkdirp			= require('mkdirp');
 var exec 			= require('child_process').exec;
 var spawn 			= require('child_process').spawn;
-var spotHistory 	= require("./spotPriceHistory.js");
-var spotInstance 	= require("./scriptAgentUtils/spotInstanceUtils");
+var spotInstance 	= require("../scriptAgentUtils/spotInstanceUtils");
 
 var terminate = false;
 var reRequest = false;
@@ -27,7 +26,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 			if(!err || data) result = result.concat(JSON.parse(data)); 
 		});
 	}
-	spotHistory.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
+	spotInstance.getBidPrice(inputData, function (error, spotPrice, bidPrice) {
 		if(error || !bidPrice) {
 			console.log("Error in getting Spot Price:", error);
 			return callback(error, null, resultFile, "Not Started");
@@ -36,11 +35,11 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 		console.log("Lowest Bid Price will be:", bidPrice);
 
 		inputData.SpotPrice = bidPrice;
-		exec('chmod 400 '+__dirname+'/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
+		exec('chmod 400 '+__dirname+'/../scriptAgentUtils/'+inputData.Specification.KeyName+'.pem', function (err, stdout, stderr) {
 			if(err) {
 				return callback(err, null, resultFile, "Not Started");
 			}
-			fs.readFile(__dirname + "/userData.txt", 'utf8', function (readErr, userData) {
+			fs.readFile(__dirname + "/../scriptAgentUtils/userData.txt", 'utf8', function (readErr, userData) {
 				if(readErr) return callback(readErr, null, resultFile, "Not Started");
 				var region = (inputData.Specification.Placement.AvailabilityZone).split("");
 				region.pop();

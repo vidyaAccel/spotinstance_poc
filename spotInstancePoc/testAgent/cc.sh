@@ -1,3 +1,3 @@
 #!/bin/sh
 git pull
-nodejs /job/job.js
+nodejs ./job/job.js

@@ -18,4 +18,4 @@ sudo service docker start
 echo '['$(date -u)'] Running Docker...' | tee -a "$logfile"
 sudo docker login -u spotpoc -p spotinstance123
 echo '['$(date -u)'] Getting Docker Container...' | tee -a "$logfile"
-sudo docker pull spotpoc/poc:v30
+sudo docker pull spotpoc/poc:v36

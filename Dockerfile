@@ -11,6 +11,7 @@ RUN apt-get -y install npm
 RUN apt-get -y install git
 RUN apt-get -y install python
 RUN npm install aws-sdk
+WORKDIR /home/
 RUN git clone https://github.com/vidyaAccel/spotinstance_poc.git
 WORKDIR /home/spotinstance_poc/spotInstancePoc/testAgent
 RUN git pull

@@ -87,5 +87,5 @@ var jobConversion = function () {
   	});
 }
 
-console.log("\n["+new Date(Date.now())+"] Got docker container and Runniing Jobs ", ((input) ? input.split("#") : []));
+console.log("\n["+new Date(Date.now())+"] Got docker container and Running Jobs ", ((input) ? input.split("#") : []));
 jobConversion();

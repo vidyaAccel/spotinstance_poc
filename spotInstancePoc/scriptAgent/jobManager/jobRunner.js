@@ -2,8 +2,6 @@ var utils 		 = require('../scriptAgentUtils/utils.js');
 var spotManager  = require('../spotManager/spotInstanceManager.js');
 var spotInstance = require('../scriptAgentUtils/spotInstanceUtils');
 
-var inputData = {};
-
 inputData.Platform = 'Linux/UNIX';
 inputData.Increment = 1;
 inputData.Specification = {};
@@ -72,4 +70,3 @@ var checkSpotInstanceStatus = function(termSig, callback) {
 }
 
 module.exports.startJobs = startJobs;
-module.exports.getCredential = getCredential;

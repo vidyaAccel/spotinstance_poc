@@ -45,7 +45,7 @@ var getInstanceId = function (requestId, requestState, callback) {
 				console.log("spot instance request fulfilled.....\nspot instance id:", instanceId);
 				return callback(null, instanceId)
 			}
-		} else if(requestData.State == 'closed') {
+		} else if(requestData.State == 'closed' || requestData.State == 'cancelled') {
 			return callback(requestData.Status.Code, null);
 		}
 	}
@@ -80,13 +80,10 @@ var getInstanceData = function (instanceId, callback) {
 }
 
 
-var connectInstance = function (instanceData, keyName, result, callback) {
-	if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated' || instance_terminated[instanceData.InstanceId] == true) {
-		console.log("Instance Terminated, couldn't connect to get result.");
-		result.success.push("\nInstance Terminated\n");
-		result.error.push("\nInstance Terminated\n");
-		return callback(result, instanceData);
-	}
+var connectInstance = function (keyName, result, callback) {
+	console.log("Connecting to Instance....")
+	instanceData = instance;
+	
 	setTimeout(function () {
 		var sshCommand, sshCommandArgs, connect, connectData;
 		var output = 'cat /home/ubuntu/user-data.log';
@@ -95,18 +92,18 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 			sshCommand = 'ssh';
 			sshCommandArgs = ['-i', __dirname+'/'+keyName+'.pem', '-oStrictHostKeyChecking=no', 'ubuntu@'+instanceData.PublicDnsName, output];
 
-			connect = spawnSync(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
-				stdio: [
+			connect = spawn(sshCommand, sshCommandArgs, { maxBuffer: 200*1024*1024,
+				/*stdio: [
 			    	0, // Doesn't use parent's stdin for child
 			    	'pipe', // Direct child's stdout to an array output at index 1
 			    	'pipe' // Direct child's stderr to an array output at index 2
-			  	],
+			  	],*/
 			  	timeout: 10000,
 			  	killSignal: 'SIGKILL',
 			  	encoding: 'UTF-8'
 			});
 
-			if(connect.error || connect.output[2]) {
+			/*if(connect.error || connect.output[2]) {
 				if(connect.signal == 'SIGKILL') result.error.push((JSON.stringify(JSON.stringify(connect.error)) || JSON.stringify(connect.output[2])));
 				else if(!result.error.includes(connect.error || connect.output[2])) {
 					result.error.push((connect.error || connect.output[2]));
@@ -126,16 +123,54 @@ var connectInstance = function (instanceData, keyName, result, callback) {
 				} else if(connect.output[0] != null && connect.output[0].includes('Connection refused')) {
 					console.log('Logs of job running in spot Instance:\n'+result.success+'\nError of running jobs in spot instance:\n'+result.error);
 					return callback(result, instanceData);
-				} else connectInstance(instanceData, keyName, result, callback);
+				} else connectInstance(keyName, result, callback);
 			} else {
 				if(connect.signal == 'SIGKILL') {
 					console.log("Instance Terminated, couldn't connect to get result.");
 					result.success.push("\nInstance Terminated\n");
 					result.error.push("\nInstance Terminated\n");
 					return callback(result, instanceData);
-				} else connectInstance(instanceData, keyName, result, callback);
-			}
-		} else connectInstance(instanceData, keyName, result, callback);
+				} else connectInstance(keyName, result, callback);
+			}*/
+			connect.on('error', function (error) {
+				if(!result.error.includes(error.message)) result.error.push(error.message);
+			});
+
+			connect.stdout.on('data', function (data) {
+				connectData = data.toString();
+				if(!result.error.includes(connectData)) result.success.push(connectData);
+				console.log('Logs of job running in spot Instance:\n'+connectData);
+			});
+
+			connect.stderr.on('data', function (data) {
+				if(!result.error.includes(data.toString())) result.error.push(data.toString());
+			});
+
+			connect.on('close', function (code, signal) {
+				if(code == 0 && signal == null) {
+					if(connectData.includes('Completed All Jobs')) {
+						result.success = [connectData];
+						console.log('Logs of job running in spot Instance:\n'+result.success+'\nError of running jobs in spot instance:\n'+result.error);
+						return callback(result, instanceData);
+					} else if(result.error.includes('Connection refused')) {
+						console.log('Logs of job running in spot Instance:\n'+result.success+'\nError of running jobs in spot instance:\n'+result.error);
+						return callback(result, instanceData);
+					} else connectInstance(keyName, result, callback);
+				} else {
+					if(signal === 'SIGKILL') {
+						console.log("Couldn't connect instance to get result.");
+						result.success.push("\nInstance Terminated\n");
+						result.error.push("\nInstance Terminated\n");
+						return callback(result, instanceData);
+					} else connectInstance(keyName, result, callback);
+				}
+			});
+		} else if(instanceData.State.Name == 'shutting-down' || instanceData.State.Name == 'terminated' || instance_terminated[instanceData.InstanceId] == true) {
+			console.log("Instance Terminated, couldn't connect to get result.");
+			result.success.push("\nInstance Terminated\n");
+			result.error.push("\nInstance Terminated\n");
+			return callback(result, instanceData);
+		}
 	}, 2000);
 }
 
@@ -166,9 +201,8 @@ var cancelRequest = function (spotRequestId, callback) {
 
 
 var increase = function (spotPrice, increment) {
-	var price = spotPrice.split("");
-	price[price.length-3] = (parseInt(price[price.length-3]) + increment).toString();
-	return (price.join(""));
+	var price = parseFloat(spotPrice).toFixed(4);
+	return ((parseFloat(price) + parseFloat('0.000'+increment)).toFixed(4)).toString();
 }
 
 var getBidPrice = function (inputData, callback) {

@@ -4,7 +4,6 @@ var exec 			= require('child_process').exec;
 var spawn 			= require('child_process').spawn;
 var spotInstance 	= require("../scriptAgentUtils/spotInstanceUtils");
 
-var terminate = false;
 var reRequest = false;
 var getSpotInstance = function (jobName, accessKey, secretKey, inputData, resultPath, callback) {
 	var result = [], reResult = {};
@@ -66,7 +65,7 @@ var getSpotInstance = function (jobName, accessKey, secretKey, inputData, result
 								callback(null, instanceData, resultFile, "Running");
 								mkdirp(resultFilePath,function() {
 									setTimeout(function () {
-										spotInstance.connectInstance(instanceData, inputData.Specification.KeyName, reResult, function (res, instanceData) {
+										spotInstance.connectInstance(inputData.Specification.KeyName, reResult, function (res, instanceData) {
 											result.push(res);
 											fs.writeFile(resultFile, JSON.stringify(result), function (err) {
 												if(err) console.log("Couldn't write result file at ", resultFile);

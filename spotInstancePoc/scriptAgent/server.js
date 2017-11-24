@@ -11,6 +11,8 @@ global.completed = {};
 global.instance_terminated = {};
 global.instance = null;
 global.resultPath = [];
+global.terminate = false;
+global.inputData = {};
 
 var start = require('./jobManager/startJob.js');
 var results = [];

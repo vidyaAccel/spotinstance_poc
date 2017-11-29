@@ -6,14 +6,13 @@ var spotInstance = require('../scriptAgentUtils/spotInstanceUtils');
 var jobRunner 	 = require('./jobRunner.js');
 
 var AWS, sqs, s3Bucket;
-
 try {
 	AWS = require('aws-sdk');
-	sqs = new AWS.SQS({region:'us-west-2'});
-	s3Bucket = new AWS.S3( { params: {Bucket: 'tsgpoc'} } );
-	utils.getCredential(function (error, accessKey, secretKey) {
+	utils.getCredential(function (error, accessKey, secretKey, config) {
 		if(error) throw error;
-		AWS.config.update({accessKeyId: accessKey, secretAccessKey: secretKey});
+		AWS.config.update(config);
+		sqs = new AWS.SQS();
+		s3Bucket = new AWS.S3( { params: {Bucket: 'tsgpoc'} } );
 	});
 } catch (error) {
 	console.log("ERROR:", error, '\n Please run "npm install aws-sdk" to solve this error.');

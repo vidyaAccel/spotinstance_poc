@@ -9,7 +9,8 @@ var getCredential = function(callback) {
 		var newData = data.split('\n');
 		var accessKey = newData[1].split('= ')[1];
 		var secretKey = newData[2].split('= ')[1];
-		callback(null, accessKey, secretKey);
+		var config = {accessKeyId: accessKey, secretAccessKey: secretKey, region:'us-west-2', apiVersion: '2016-11-15'}
+		callback(null, accessKey, secretKey, config);
 	});
 }
 

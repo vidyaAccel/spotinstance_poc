@@ -3,7 +3,19 @@ var express 	= require('express'),
 	fs 			= require('fs'),
 	path 		= require('path'),
 	exec 		= require('child_process').exec,
-	spawnSync 	= require('child_process').spawnSync;
+	spawnSync 	= require('child_process').spawnSync,
+	utils 		= require('./scriptAgentUtils/utils.js');
+
+var AWS;
+try {
+	AWS = require('aws-sdk');
+	utils.getCredential(function (error, accessKey, secretKey, config) {
+		if(error) throw error;
+		AWS.config.update(config);
+	});
+} catch (error) {
+	console.log("ERROR:", error, '\n Please run "npm install aws-sdk" to solve this error.');
+}
 
 var app = express();
 

@@ -1,6 +1,13 @@
 #!/bin/bash
 source ~/.bash_profile
 
+# Run sshd
+/usr/sbin/sshd
+
+eval `ssh-agent -s`
+
+ssh-add ~/.ssh/id_rsa
+
 git pull
 
 if [[ $API -eq "" ]]
@@ -11,11 +18,10 @@ fi
 echo "ANDROID API: $API"
 
 ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
-    "platforms;$API" "sources;$API" "system-images;$API;google_api;x86" && \
-    echo "y"
+    "platforms;$API" "sources;$API" "system-images;$API;google_api;x86"
 
 sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo no; done ) | avdmanager -s --clear-cache create avd -n Nexus -f -k 'system-images;$API;google_api;x86' && echo "no"
+( sleep 4 && while [ 1 ]; do sleep 1; echo no; done ) | avdmanager -s --clear-cache create avd -n Nexus -f -k 'system-images;$API;google_api;x86'
 
 node ./job/job.js

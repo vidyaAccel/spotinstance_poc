@@ -121,16 +121,11 @@ EXPOSE 9070
 
 WORKDIR /root
 
-# Run sshd
-RUN /usr/sbin/sshd
+COPY sshRunner.sh /root/sshRunner.sh
 
-RUN eval $(ssh-agent -s)
-
-RUN ( sleep 1 && while [ 1 ]; do sleep 1; echo $ssh_prv_key_pass; done ) | ssh-add ~/.ssh/id_rsa && echo $ssh_prv_key_pass
-RUN git clone git@github.com:vidyaAccel/spotinstance_poc.git
+RUN /bin/bash ~/sshRunner.sh $ssh_prv_key_pass
 
 WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent
-RUN git pull
 
 RUN chmod +x pocRunner.sh
 

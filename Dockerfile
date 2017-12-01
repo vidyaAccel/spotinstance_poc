@@ -75,10 +75,9 @@ RUN touch $HOME/.bash_profile
 RUN echo "export PATH=$PATH:$HOME/node/bin" >> $HOME/.bash_profile && \
 	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> $HOME/.bash_profile && \
     echo JAVA_HOME="/usr/lib/jvm/java-8-oracle" >> /etc/environment && \
-    echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> $HOME/.bash_profile && \
 	echo "export ANDROID_HOME=$HOME/android-sdk" >> $HOME/.bash_profile && \
 	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> $HOME/.bash_profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> $HOME/.bash_profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> $HOME/.bash_profile
 
 # Generate android debug.keystore
 RUN keytool -genkey -v -keystore $HOME/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US"

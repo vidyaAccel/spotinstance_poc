@@ -35,12 +35,7 @@ RUN echo "$ssh_prv_key" > /root/.ssh/id_rsa && \
 
 RUN echo "    IdentityFile ~/.ssh/id_rsa" >> /etc/ssh/ssh_config
 
-# Start ssh agent
-RUN eval $(ssh-agent -s)
-
-# Add ssh key to ssh-agent
-RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo $ssh_prv_key_pass; done ) | ssh-add ~/.ssh/id_rsa && \
-    echo "$ssh_prv_key_pass"
+RUN apt-get -y install libglu1-mesa
 
 # Install JAVA and JDK
 RUN add-apt-repository -y ppa:webupd8team/java && \

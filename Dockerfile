@@ -120,7 +120,14 @@ EXPOSE 443
 EXPOSE 9070
 
 WORKDIR /root
-RUN git clone git@github.com:IPGPTP/spotinstance_poc.git
+
+# Run sshd
+/usr/sbin/sshd
+
+RUN eval $(ssh-agent -s)
+
+RUN ( sleep 1 && while [ 1 ]; do sleep 1; echo $ssh_prv_key_pass; done ) | ssh-add ~/.ssh/id_rsa && echo $ssh_prv_key_pass
+RUN git clone git@github.com:vidyaAccel/spotinstance_poc.git
 
 WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent
 RUN git pull

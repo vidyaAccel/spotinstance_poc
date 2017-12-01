@@ -1,9 +1,6 @@
 #!/bin/bash
 source ~/.bash_profile
 
-# Run sshd
-/usr/sbin/sshd
-
 git pull
 
 if [[ $API -eq "" ]]

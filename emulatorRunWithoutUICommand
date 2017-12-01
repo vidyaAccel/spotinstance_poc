@@ -1,0 +1,1 @@
+emulator -avd Nexus -noaudio -no-window -gpu off -verbose -qemu -usbdevice tablet

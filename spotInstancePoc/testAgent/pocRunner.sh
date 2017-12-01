@@ -19,6 +19,6 @@ echo "ANDROID API: $API"
 
 sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | avdmanager -s --clear-cache create avd -n Nexus -f -k 'system-images;$API;google_api;x86' && echo "no"
+( sleep 4 && while [ 1 ]; do sleep 1; echo no; done ) | avdmanager -s --clear-cache create avd -n Nexus -f -k 'system-images;$API;google_api;x86' && echo "no"
 
 node ./job/job.js

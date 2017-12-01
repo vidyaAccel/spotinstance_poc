@@ -70,18 +70,21 @@ ENV PATH $PATH:$ANDROID_HOME/tools/bin
 
 RUN mkdir $HOME/.android
 RUN touch $HOME/.android/repositories.cfg
+RUN touch $HOME/.bash_profile
 
-RUN echo "export PATH=$PATH:$HOME/node/bin" >> /etc/profile && \
-	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /etc/profile && \
+RUN echo "export PATH=$PATH:$HOME/node/bin" >> $HOME/.bash_profile && \
+	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> $HOME/.bash_profile && \
     echo JAVA_HOME="/usr/lib/jvm/java-8-oracle" >> /etc/environment && \
-    echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /etc/profile && \
-	echo "export ANDROID_HOME=$HOME/android-sdk" >> /etc/profile && \
-	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> /etc/profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> /etc/profile
+    echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> $HOME/.bash_profile && \
+	echo "export ANDROID_HOME=$HOME/android-sdk" >> $HOME/.bash_profile && \
+	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> $HOME/.bash_profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> $HOME/.bash_profile && \
 
 # Generate android debug.keystore
 RUN keytool -genkey -v -keystore $HOME/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US"
 RUN keytool -exportcert -keystore $HOME/.android/debug.keystore -storepass android -alias androiddebugkey -file $HOME/.android/androiddebugkey.crt
+
+RUN /bin/bash -c "source $HOME/.bash_profile"
 
 # Install latest android tools and system images
 RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
@@ -91,8 +94,8 @@ RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root
 
 RUN rm -rf $ANDROID_HOME/tools/emulator
 
-RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> /etc/profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/emulator" >> /etc/profile
+RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> $HOME/.bash_profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/emulator" >> $HOME/.bash_profile
 
 RUN apt-get -y install git python
 
@@ -107,6 +110,7 @@ ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
 RUN /bin/bash -c "source /etc/profile"
+RUN /bin/bash -c "source $HOME/.bash_profile"
 
 RUN npm install -g aws-sdk
 

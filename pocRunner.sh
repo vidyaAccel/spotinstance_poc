@@ -1,5 +1,5 @@
 #!/bin/bash
-source /etc/profile
+source $HOME/.bash_profile
 
 # Run sshd
 /usr/sbin/sshd

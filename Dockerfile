@@ -70,19 +70,20 @@ ENV PATH $PATH:$ANDROID_HOME/tools/bin
 
 RUN mkdir /root/.android
 RUN touch /root/.android/repositories.cfg
+RUN touch /root/.bash_profile
 
-RUN echo "export PATH=$PATH:/root/node/bin" >> /root/.profile && \
-	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /root/.profile && \
+RUN echo "export PATH=$PATH:/root/node/bin" >> /root/.bash_profile && \
+	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /root/.bash_profile && \
     echo JAVA_HOME="/usr/lib/jvm/java-8-oracle" >> /etc/environment && \
-	echo "export ANDROID_HOME=/root/android-sdk" >> /root/.profile && \
-	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> /root/.profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> /root/.profile
+	echo "export ANDROID_HOME=/root/android-sdk" >> /root/.bash_profile && \
+	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> /root/.bash_profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> /root/.bash_profile
 
 # Generate android debug.keystore
 RUN keytool -genkey -v -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US"
 RUN keytool -exportcert -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -file /root/.android/androiddebugkey.crt
 
-RUN /bin/bash -c "source /root/.profile"
+RUN /bin/bash -c "source /root/.bash_profile"
 
 # Install latest android tools and system images
 RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
@@ -92,8 +93,8 @@ RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root
 
 RUN rm -rf $ANDROID_HOME/tools/emulator
 
-RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> /root/.profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/emulator" >> /root/.profile
+RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> /root/.bash_profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/emulator" >> /root/.bash_profile
 
 RUN apt-get -y install git python
 
@@ -104,11 +105,11 @@ RUN mkdir /var/run/sshd && \
 # SSH login fix.
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
-ENV NOTVISIBLE "in users profile"
-RUN echo "export VISIBLE=now" >> /etc/profile
+ENV NOTVISIBLE "in users bash_profile"
+RUN echo "export VISIBLE=now" >> /etc/bash_profile
 
 RUN /bin/bash -c "source /etc/profile"
-RUN /bin/bash -c "source /root/.profile"
+RUN /bin/bash -c "source /root/.bash_profile"
 
 RUN npm install -g aws-sdk
 

@@ -122,7 +122,7 @@ EXPOSE 9070
 WORKDIR /root
 
 # Run sshd
-/usr/sbin/sshd
+RUN /usr/sbin/sshd
 
 RUN eval $(ssh-agent -s)
 

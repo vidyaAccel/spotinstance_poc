@@ -6,6 +6,22 @@ ARG ssh_prv_key
 ARG ssh_pub_key
 ARG ssh_prv_key_pass
 
+ENV DEBIAN_FRONTEND noninteractive
+RUN echo "export DEBIAN_FRONTEND=noninteractive" >> /etc/profile
+
+RUN echo "debconf shared/accepted-oracle-license-v1-1 select true" | debconf-set-selections && \
+    echo "debconf shared/accepted-oracle-license-v1-1 seen true" | debconf-set-selections
+
+RUN dpkg --add-architecture i386
+
+RUN apt-get update
+RUN apt-get -y install apt-utils sudo
+RUN apt-get -y upgrade
+
+# Update packages
+RUN apt-get update && \
+    apt-get -y install software-properties-common bzip2 ssh net-tools openssh-server socat curl cpu-checker qemu-kvm libvirt-bin ubuntu-vm-builder bridge-utils libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1 libbz2-1.0:i386
+
 # Authorize SSH Host
 RUN mkdir -p /root/.ssh && \
     chmod 0700 /root/.ssh && \
@@ -26,22 +42,8 @@ RUN eval $(ssh-agent -s)
 RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo $ssh_prv_key_pass; done ) | ssh-add ~/.ssh/id_rsa && \
     echo "$ssh_prv_key_pass"
 
-ENV DEBIAN_FRONTEND noninteractive
-RUN echo "export DEBIAN_FRONTEND=noninteractive" >> /etc/profile
-
-RUN echo "debconf shared/accepted-oracle-license-v1-1 select true" | debconf-set-selections && \
-    echo "debconf shared/accepted-oracle-license-v1-1 seen true" | debconf-set-selections
-
-RUN dpkg --add-architecture i386
-
-RUN apt-get update
-RUN apt-get -y install apt-utils sudo
-RUN apt-get -y upgrade
-
-# Update packages
-RUN apt-get update && \
-    apt-get -y install software-properties-common bzip2 ssh net-tools openssh-server socat curl cpu-checker qemu-kvm libvirt-bin ubuntu-vm-builder bridge-utils libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1 libbz2-1.0:i386 && \
-    add-apt-repository -y ppa:webupd8team/java && \
+# Install JAVA and JDK
+RUN add-apt-repository -y ppa:webupd8team/java && \
     apt-get update && \
     apt-get -y install oracle-java8-installer
 

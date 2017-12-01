@@ -46,7 +46,7 @@ RUN adduser `id -un` kvm
 RUN adduser `id -un` libvirtd
 
 #Install latest node js
-RUN wget -qO- https://nodejs.org/dist/v8.9.1/node-v8.9.1-linux-x64.tar.xz | tar xvJ -C $/root/ && \
+RUN wget -qO- https://nodejs.org/dist/v8.9.1/node-v8.9.1-linux-x64.tar.xz | tar xvJ -C /root/ && \
 	mv /root/node-v8.9.1-linux-x64 /root/node && \
 	rm -rf /root/node-v8.9.1-linux-x64 && \
 	chown -R root:root /root/node/

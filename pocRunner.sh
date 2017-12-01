@@ -11,6 +11,8 @@ then
 	API="android-21"
 fi
 
+echo "ANDROID API: $API"
+
 ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
     "platforms;$API" "sources;$API" "system-images;$API;google_api;x86" && \
     echo "y"

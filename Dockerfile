@@ -46,44 +46,43 @@ RUN adduser `id -un` kvm
 RUN adduser `id -un` libvirtd
 
 #Install latest node js
-RUN wget -qO- https://nodejs.org/dist/v8.9.1/node-v8.9.1-linux-x64.tar.xz | tar xvJ -C $HOME/ && \
-	mv $HOME/node-v8.9.1-linux-x64 $HOME/node && \
-	rm -rf $HOME/node-v8.9.1-linux-x64 && \
-	chown -R root:root $HOME/node/
+RUN wget -qO- https://nodejs.org/dist/v8.9.1/node-v8.9.1-linux-x64.tar.xz | tar xvJ -C $/root/ && \
+	mv /root/node-v8.9.1-linux-x64 /root/node && \
+	rm -rf /root/node-v8.9.1-linux-x64 && \
+	chown -R root:root /root/node/
 
 # Add nodejs and npm PATH
-ENV PATH $PATH:$HOME/node/bin
+ENV PATH $PATH:/root/node/bin
 
 # Install android sdk
-RUN curl -so $HOME/sdk-tools-linux.zip "https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip" && \
-    unzip -o $HOME/sdk-tools-linux.zip -d $HOME/android-sdk/ && \
-    rm -rf $HOME/sdk-tools-linux.zip && \
-	chown -R root:root $HOME/android-sdk/
+RUN curl -so /root/sdk-tools-linux.zip "https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip" && \
+    unzip -o /root/sdk-tools-linux.zip -d /root/android-sdk/ && \
+    rm -rf /root/sdk-tools-linux.zip && \
+	chown -R root:root /root/android-sdk/
 
 # Export JAVA_HOME variable
 ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
 
 # Add android tools and platform tools to PATH
-ENV ANDROID_HOME $HOME/android-sdk
+ENV ANDROID_HOME /root/android-sdk
 ENV PATH $PATH:$ANDROID_HOME/tools
 ENV PATH $PATH:$ANDROID_HOME/tools/bin
 
-RUN mkdir $HOME/.android
-RUN touch $HOME/.android/repositories.cfg
-RUN touch $HOME/.bash_profile
+RUN mkdir /root/.android
+RUN touch /root/.android/repositories.cfg
 
-RUN echo "export PATH=$PATH:$HOME/node/bin" >> $HOME/.bash_profile && \
-	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> $HOME/.bash_profile && \
+RUN echo "export PATH=$PATH:/root/node/bin" >> /root/.profile && \
+	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /root/.profile && \
     echo JAVA_HOME="/usr/lib/jvm/java-8-oracle" >> /etc/environment && \
-	echo "export ANDROID_HOME=$HOME/android-sdk" >> $HOME/.bash_profile && \
-	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> $HOME/.bash_profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> $HOME/.bash_profile
+	echo "export ANDROID_HOME=/root/android-sdk" >> /root/.profile && \
+	echo "export PATH=$PATH:$ANDROID_HOME/tools" >> /root/.profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/tools/bin" >> /root/.profile
 
 # Generate android debug.keystore
-RUN keytool -genkey -v -keystore $HOME/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US"
-RUN keytool -exportcert -keystore $HOME/.android/debug.keystore -storepass android -alias androiddebugkey -file $HOME/.android/androiddebugkey.crt
+RUN keytool -genkey -v -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US"
+RUN keytool -exportcert -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -file /root/.android/androiddebugkey.crt
 
-RUN /bin/bash -c "source $HOME/.bash_profile"
+RUN /bin/bash -c "source /root/.profile"
 
 # Install latest android tools and system images
 RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
@@ -93,8 +92,8 @@ RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root
 
 RUN rm -rf $ANDROID_HOME/tools/emulator
 
-RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> $HOME/.bash_profile && \
-    echo "export PATH=$PATH:$ANDROID_HOME/emulator" >> $HOME/.bash_profile
+RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> /root/.profile && \
+    echo "export PATH=$PATH:$ANDROID_HOME/emulator" >> /root/.profile
 
 RUN apt-get -y install git python
 
@@ -109,7 +108,7 @@ ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
 RUN /bin/bash -c "source /etc/profile"
-RUN /bin/bash -c "source $HOME/.bash_profile"
+RUN /bin/bash -c "source /root/.profile"
 
 RUN npm install -g aws-sdk
 

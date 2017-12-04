@@ -70,7 +70,8 @@ ENV PATH $PATH:$ANDROID_HOME/tools/bin
 
 RUN mkdir /root/.android
 RUN touch /root/.android/repositories.cfg
-RUN touch /root/.bash_profile
+RUN touch /root/.bash_profile && \
+    echo "[[ -s "$HOME/.profile" ]] && source "$HOME/.profile" # Load the default .profile" >> /root/.bash_profile
 
 RUN echo "export PATH=$PATH:/root/node/bin" >> /root/.bash_profile && \
 	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /root/.bash_profile && \
@@ -111,11 +112,12 @@ RUN echo "export VISIBLE=now" >> /etc/bash_profile
 RUN /bin/bash -c "source /etc/profile"
 RUN /bin/bash -c "source /root/.bash_profile"
 
-# Expose control ports
+# Expose control ports and adb ports
 EXPOSE 22
 EXPOSE 80
 EXPOSE 443
-EXPOSE 9070
+EXPOSE 5554
+EXPOSE 5555
 
 WORKDIR /root
 

@@ -6,7 +6,17 @@ source ~/.bash_profile
 
 eval `ssh-agent -s`
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo $1; done ) | ssh-add ~/.ssh/id_rsa
+echo "exec cat" > /root/ap-cat.sh
+
+chmod a+x ap-cat.sh
+
+export DISPLAY=1
+
+echo $1 | SSH_ASKPASS=/root/ap-cat.sh ssh-add ~/.ssh/id_rsa
+
+rm /root/ap-cat.sh
+
+#( sleep 4 && while [ 1 ]; do sleep 1; echo $1; done ) | ssh-add ~/.ssh/id_rsa
 
 git pull
 
@@ -25,6 +35,6 @@ sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 
 ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --licenses
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo no; done ) | avdmanager -s --clear-cache create avd -n Nexus -f -k 'system-images;$API;google_apis;x86'
+( sleep 4 && while [ 1 ]; do sleep 1; echo no; done ) | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
 
 /bin/bash

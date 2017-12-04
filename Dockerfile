@@ -121,7 +121,7 @@ WORKDIR /root
 
 RUN npm i aws-sdk appium
 
-COPY runSsh.sh /root/runSsh.sh
+COPY sshRunner.sh /root/runSsh.sh
 
 RUN chmod +x /root/runSsh.sh
 

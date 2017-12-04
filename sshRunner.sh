@@ -1,7 +1,7 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 
 #script will not run further on error
-set -ex
+set -e
 
 source ~/.bash_profile
 

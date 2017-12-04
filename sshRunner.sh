@@ -8,7 +8,17 @@ cd
 
 eval `ssh-agent -s`
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo $1; done ) | ssh-add ~/.ssh/id_rsa
+echo "exec cat" > /root/ap-cat.sh
+
+chmod a+x /root/ap-cat.sh
+
+export DISPLAY=1
+
+echo $1 | SSH_ASKPASS=/root/ap-cat.sh ssh-add ~/.ssh/id_rsa
+
+rm /root/ap-cat.sh
+
+#( sleep 4 && while [ 1 ]; do sleep 1; echo $1; done ) | ssh-add ~/.ssh/id_rsa
 
 if [ ! -d "/root/spotinstance_poc" ]; then
   	git clone git@github.com:vidyaAccel/spotinstance_poc.git

@@ -8,7 +8,7 @@ eval `ssh-agent -s`
 
 echo "exec cat" > /root/ap-cat.sh
 
-chmod a+x ap-cat.sh
+chmod a+x /root/ap-cat.sh
 
 export DISPLAY=1
 

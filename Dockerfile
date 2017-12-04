@@ -131,4 +131,4 @@ WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent
 
 RUN chmod +x pocRunner.sh
 
-CMD ["/bin/bash", "pocRunner.sh", "$PASS", "$API"]
+CMD ["/bin/bash", "pocRunner.sh", $PASS, $API]

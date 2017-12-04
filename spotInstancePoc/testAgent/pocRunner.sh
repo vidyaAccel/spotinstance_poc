@@ -32,13 +32,12 @@ fi
 
 echo "ANDROID API: $API"
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
-    "platforms;$API" "sources;$API" "system-images;$API;google_apis;x86"
+y | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 "platforms;$API" "sources;$API" "system-images;$API;google_apis;x86"
 
 sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 
-( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --licenses
+y | sdkmanager --sdk_root=/root/android-sdk/ --licenses
 
-echo no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
+no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
 
 emulator -avd Nexus -noaudio -no-window -gpu off -verbose -qemu -usbdevice tablet

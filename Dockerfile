@@ -87,10 +87,9 @@ RUN keytool -exportcert -keystore /root/.android/debug.keystore -storepass andro
 RUN /bin/bash -c "source /root/.bash_profile"
 
 # Install latest android tools and system images
-RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
+RUN y | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
     "build-tools;27.0.1" "platform-tools" "tools" "emulator" \
-    "extras;android;m2repository" "extras;google;m2repository" "extras;google;google_play_services" && \
-    echo "y"
+    "extras;android;m2repository" "extras;google;m2repository" "extras;google;google_play_services"
 
 RUN rm -rf $ANDROID_HOME/tools/emulator
 

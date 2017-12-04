@@ -14,6 +14,6 @@ if [ ! -d "/root/spotinstance_poc" ]; then
   	git clone git@github.com:vidyaAccel/spotinstance_poc.git
 fi
 
-cd spotinstance_poc/
+cd spotinstance_poc/testAgent/
 
 git pull

@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/bin/bash -ex
+
+#script will not run further on error
+set -ex
+
 source ~/.bash_profile
 
 cd

@@ -38,6 +38,6 @@ sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 
 yes | sdkmanager --sdk_root=/root/android-sdk/ --licenses
 
-no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
+echo no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
 
 emulator -avd Nexus -noaudio -no-window -gpu off -verbose -qemu -usbdevice tablet

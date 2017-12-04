@@ -129,6 +129,4 @@ WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent
 
 RUN chmod +x pocRunner.sh
 
-ENV PASS=$ssh_prv_key_pass
-
 CMD ["/bin/bash", "pocRunner.sh"]

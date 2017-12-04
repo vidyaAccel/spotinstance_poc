@@ -6,7 +6,9 @@ source ~/.bash_profile
 
 eval `ssh-agent -s`
 
-ssh-add ~/.ssh/id_rsa
+echo "$PASS"
+
+( sleep 4 && while [ 1 ]; do sleep 1; echo $PASS; done ) | ssh-add ~/.ssh/id_rsa
 
 git pull
 

@@ -12,4 +12,6 @@ eval `ssh-agent -s`
 
 git clone git@github.com:vidyaAccel/spotinstance_poc.git
 
+cd spotinstance_poc/
+
 git pull

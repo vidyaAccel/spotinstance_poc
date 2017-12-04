@@ -111,8 +111,6 @@ RUN echo "export VISIBLE=now" >> /etc/bash_profile
 RUN /bin/bash -c "source /etc/profile"
 RUN /bin/bash -c "source /root/.bash_profile"
 
-RUN npm install -g aws-sdk
-
 # Expose control ports
 EXPOSE 22
 EXPOSE 80
@@ -121,6 +119,8 @@ EXPOSE 9070
 
 WORKDIR /root
 
+RUN npm i aws-sdk appium
+
 COPY sshRunner.sh /root/sshRunner.sh
 
 RUN /bin/bash ~/sshRunner.sh $ssh_prv_key_pass
@@ -128,5 +128,7 @@ RUN /bin/bash ~/sshRunner.sh $ssh_prv_key_pass
 WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent
 
 RUN chmod +x pocRunner.sh
+
+ENV PASS=$ssh_prv_key_pass
 
 CMD ["/bin/bash", "pocRunner.sh"]

@@ -123,6 +123,8 @@ RUN npm i aws-sdk appium
 
 COPY sshRunner.sh /root/sshRunner.sh
 
+RUN chmod +x /root/sshRunner.sh
+
 RUN /bin/bash ~/sshRunner.sh $ssh_prv_key_pass
 
 WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent

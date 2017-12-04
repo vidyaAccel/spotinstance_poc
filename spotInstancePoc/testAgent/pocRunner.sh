@@ -10,14 +10,16 @@ eval `ssh-agent -s`
 
 git pull
 
-if [[ $2 -eq "" ]]; then
-	$2="android-21"
+API=$2
+
+if [[ $API -eq "" ]]; then
+	API="android-21"
 fi
 
-echo "ANDROID API: $2"
+echo "ANDROID API: $API"
 
 ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
-    "platforms;$2" "sources;$2" "system-images;$2;google_apis;x86"
+    "platforms;$API" "sources;$API" "system-images;$API;google_apis;x86"
 
 sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 

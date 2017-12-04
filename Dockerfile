@@ -121,14 +121,14 @@ WORKDIR /root
 
 RUN npm i aws-sdk appium
 
-COPY sshRunner.sh /root/sshRunner.sh
+COPY runSsh.sh /root/runSsh.sh
 
-RUN chmod +x /root/sshRunner.sh
+RUN chmod +x /root/runSsh.sh
 
-RUN /bin/bash ~/sshRunner.sh $ssh_prv_key_pass
+RUN /bin/bash ~/runSsh.sh $ssh_prv_key_pass
 
 WORKDIR /root/spotinstance_poc/spotInstancePoc/testAgent
 
 RUN chmod +x pocRunner.sh
 
-CMD ["/bin/bash", "pocRunner.sh", $PASS, $API]
+CMD ["sh", "-c", "/bin/bash pocRunner.sh $PASS $API"]

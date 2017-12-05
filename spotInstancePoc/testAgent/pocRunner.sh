@@ -42,9 +42,9 @@ echo no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$
 
 # Detect ip and forward ADB ports outside to outside interface
 ip=$(ifconfig  | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $1}')
-socat TCP-LISTEN:5554,bind=$ip,fork tcp:127.0.0.1:5554
-socat TCP-LISTEN:5555,bind=$ip,fork tcp:127.0.0.1:5555
-socat TCP-LISTEN:80,bind=$ip,fork tcp:127.0.0.1:80
-socat TCP-LISTEN:443,bind=$ip,fork tcp:127.0.0.1:443
+socat TCP-LISTEN:5554,bind=$ip,fork tcp:127.0.0.1:5554 &
+socat TCP-LISTEN:5555,bind=$ip,fork tcp:127.0.0.1:5555 &
+socat TCP-LISTEN:80,bind=$ip,fork tcp:127.0.0.1:80 &
+socat TCP-LISTEN:443,bind=$ip,fork tcp:127.0.0.1:443 &
 
 /bin/bash

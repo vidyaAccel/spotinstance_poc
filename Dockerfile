@@ -72,8 +72,13 @@ RUN mkdir /root/.android
 RUN touch /root/.android/repositories.cfg
 
 # Generate android debug.keystore
-RUN keytool -genkey -v -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US"
+RUN keytool -genkey -v -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -sigalg SHA256withRSA -keysize 2048 -validity 3650 -dname "EMAILADDRESS=android@android.com, CN=Android Debug, OU=Android, O=Android, L=Mountain View, ST=California, C=US"
+
+RUN keytool -genkey -v -keystore /root/.android/release.keystore -storepass android -alias androidreleasekey -keypass android -keyalg RSA -sigalg SHA256withRSA -keysize 2048 -validity 3650 -dname "EMAILADDRESS=android@android.com, CN=Android Release, OU=Android, O=Android, L=Mountain View, ST=California, C=US"
+
 RUN keytool -exportcert -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -file /root/.android/androiddebugkey.crt
+
+RUN keytool -exportcert -keystore /root/.android/release.keystore -storepass android -alias androidreleasekey -file /root/.android/androidreleasekey.crt
 
 # Install latest android tools and system images
 RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \

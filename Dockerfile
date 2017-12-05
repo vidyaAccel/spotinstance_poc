@@ -71,7 +71,7 @@ ENV PATH $PATH:$ANDROID_HOME/tools/bin
 RUN mkdir /root/.android
 RUN touch /root/.android/repositories.cfg
 RUN touch /root/.bash_profile && \
-    echo "[[ -s "$HOME/.profile" ]] && source "$HOME/.profile" # Load the default .profile" >> /root/.bash_profile
+    echo "[[ -s "$HOME/.bahsrc" ]] && source "$HOME/.bashrc" # Load the default .bashrc" >> /root/.bash_profile
 
 RUN echo "export PATH=$PATH:/root/node/bin" >> /root/.bash_profile && \
 	echo "export JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /root/.bash_profile && \
@@ -87,7 +87,7 @@ RUN keytool -exportcert -keystore /root/.android/debug.keystore -storepass andro
 RUN /bin/bash -c "source /root/.bash_profile"
 
 # Install latest android tools and system images
-RUN yes | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
+RUN ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 \
     "build-tools;27.0.1" "platform-tools" "tools" "emulator" \
     "extras;android;m2repository" "extras;google;m2repository" "extras;google;google_play_services"
 

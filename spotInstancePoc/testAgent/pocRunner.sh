@@ -32,11 +32,11 @@ fi
 
 echo "ANDROID API: $API"
 
-yes | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 "platforms;$API" "sources;$API" "system-images;$API;google_apis;x86"
+( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 "platforms;$API" "sources;$API" "system-images;$API;google_apis;x86"
 
 sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 
-yes | sdkmanager --sdk_root=/root/android-sdk/ --licenses
+( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --licenses
 
 echo no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
 

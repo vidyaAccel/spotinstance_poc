@@ -32,11 +32,6 @@ fi
 
 echo "ANDROID API: $API"
 
-if [[ -n $3 ]]; then
-    echo "Last line of file specified as non-opt/last argument:"
-    tail -1 $3
-fi
-
 ( sleep 4 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --sdk_root=/root/android-sdk/ --channel=0 "platforms;$API" "sources;$API" "system-images;$API;google_apis;x86"
 
 sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
@@ -46,7 +41,7 @@ sdkmanager --sdk_root=/root/android-sdk/ --channel=0 --update
 echo no | avdmanager -s --clear-cache create avd -n Nexus -f -k "system-images;$API;google_apis;x86"
 
 # Detect ip and forward ADB ports outside to outside interface
-ip=$(ifconfig  | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $3}')
+ip=$(ifconfig  | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $1}')
 socat TCP-LISTEN:5554,bind=$ip,fork tcp:127.0.0.1:5554
 socat TCP-LISTEN:5555,bind=$ip,fork tcp:127.0.0.1:5555
 socat TCP-LISTEN:80,bind=$ip,fork tcp:127.0.0.1:80

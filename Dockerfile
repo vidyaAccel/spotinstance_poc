@@ -89,6 +89,7 @@ RUN rm -rf $ANDROID_HOME/tools/emulator
 
 ENV PATH $PATH:$ANDROID_HOME/platform-tools
 ENV PATH $PATH:$ANDROID_HOME/emulator
+ENV PATH $PATH:$ANDROID_HOME/build-tools/27.0.1
 
 RUN apt-get -y install git python
 

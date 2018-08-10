@@ -1,21 +1,7 @@
-var utils 		 = require('../scriptAgentUtils/utils.js');
-var spotManager  = require('../spotManager/spotInstanceManager.js');
+var utils = require('../scriptAgentUtils/utils.js');
+var spotManager = require('../spotManager/spotInstanceManager.js');
 var spotInstance = require('../scriptAgentUtils/spotInstanceUtils');
-
-inputData.Platform = 'Linux/UNIX';
-inputData.Increment = 1;
-inputData.Specification = {};
-inputData.Specification.InstanceType = "m3.medium";
-inputData.Specification.Placement = {};
-inputData.Specification.Placement.AvailabilityZone = "us-west-2a";
-inputData.repository = 'spotpoc/poc:v36';
-inputData.RequestType = 'one-time';
-inputData.InstanceCount = '1';
-inputData.Specification.ImageId = "ami-5b4c5d22";
-inputData.Specification.SecurityGroupIds = ["sg-42558938"];
-inputData.Specification.KeyName = "tsgpoc-key";
-inputData.Specification.Monitoring = {};
-inputData.Specification.Monitoring.Enabled = true;
+var inputData = require('../config');
 
 var startJobs = function (jobArray, resultPath, callback) {
 	var jobName = jobArray.join("#");
